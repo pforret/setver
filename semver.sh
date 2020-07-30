@@ -1,7 +1,7 @@
 #!/bin/bash
 
 readonly SCRIPT_NAME=$(basename "$0")
-readonly SCRIPT_VERSION="1.0"
+readonly SCRIPT_VERSION="1.0.0"
 readonly SCRIPT_AUTHOR="Peter Forret <peter@forret.com>"
 readonly PROG_DIRNAME=$(dirname "$0")
 if [[ -z "$PROG_DIRNAME" ]] ; then
@@ -13,15 +13,18 @@ else
   readonly PROG_PATH="$PROG_FOLDER/$SCRIPT_NAME"
 fi
 
+uses_composer=0
+[[ -f "composer.json" ]] && uses_composer=1
+
 main(){
     check_requirements
     [[ -z "$1" ]] && show_usage_and_quit
 
     # there is always a composer version, not always a tag version
-    [[ "$1" == "get" ]] && get_version_composer && safe_exit
+    [[ "$1" == "get" ]]   && get_version_composer && safe_exit
 
     [[ "$1" == "check" ]] && check_versions
-    [[ "$1" == "set" ]] && set_versions "$2"
+    [[ "$1" == "set" ]]   && set_versions "$2"
 }
 
 #####################################################################
