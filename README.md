@@ -1,6 +1,9 @@
 # semver.sh
-Get/Set package versions for composer.json/git tag -- bash script
 
+* Semantic Versioning helper script
+* get and set semver version numbers
+* works for PHP packages: composer.json, packagist, git tag
+* works for bash/shell scripts: git tag, VERSION.md
 
 ## Usage
 
@@ -24,3 +27,7 @@ Get/Set package versions for composer.json/git tag -- bash script
 1. git clone this repo
 2. symlink the script to a location in your path: `ln -s <cloned_folder>/semver.sh /usr/local/bin/`
 3. call semver.sh from the root of your git repo
+
+
+## References
+* https://semver.org/
