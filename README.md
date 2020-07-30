@@ -1,9 +1,7 @@
 ![Shellcheck CI](https://github.com/pforret/semver/workflows/Shellcheck%20CI/badge.svg)
 ![Bash CI](https://github.com/pforret/semver/workflows/Bash%20CI/badge.svg)
-![Bash CI](https://github.com/pforret/semver/workflows/Bash%20CI/badge.svg?event=release)
-![GitHub All Releases](https://img.shields.io/github/downloads/pforret/semver/total)
 ![GitHub](https://img.shields.io/github/license/pforret/semver)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/y/pforret/semver)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/pforret/semver)
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/pforret/semver)
 
 # semver.sh
