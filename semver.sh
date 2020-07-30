@@ -25,8 +25,10 @@ main(){
     [[ "$1" == "check" ]] && check_versions
 
     [[ "$1" == "set" ]]   && set_versions "$2"
-    
+    [[ "$1" == "new" ]]   && set_versions "$2"
+
     [[ "$1" == "push" ]]  && commit_and_push
+    [[ "$1" == "commit" ]]  && commit_and_push
 }
 
 #####################################################################
@@ -46,6 +48,11 @@ show_usage_and_quit(){
     $SCRIPT_NAME get: get current version (from git tag and composer)
     $SCRIPT_NAME check: compare versions of git tag and composer
     $SCRIPT_NAME set <version>: set current version through git tag and composer
+    $SCRIPT_NAME set major: new major version e.g. 2.5.17 -> 3.0.0
+    $SCRIPT_NAME set minor: new minor version e.g. 2.5.17 -> 2.6.0
+    $SCRIPT_NAME set patch: new patch version e.g. 2.5.17 -> 2.5.18
+    $SCRIPT_NAME set auto: see set patch
+    $SCRIPT_NAME set fix: see set patch
 END
     safe_exit
 }
