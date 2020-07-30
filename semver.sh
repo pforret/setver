@@ -25,6 +25,7 @@ main(){
 
     [[ "$1" == "check" ]] && check_versions
     [[ "$1" == "set" ]]   && set_versions "$2"
+    [[ "$1" == "push" ]]  && commit_and_push
 }
 
 #####################################################################
@@ -62,7 +63,7 @@ get_any_version(){
   if [[ $uses_composer -gt 0 ]] ; then
     version=$(composer config version)
   fi
-  if [[ ! -z $(get_version_tag) ]] ; then
+  if [[ -n $(get_version_tag) ]] ; then
     version=$(get_version_tag)
   fi
   echo "$version"
@@ -103,9 +104,9 @@ check_versions(){
   version_composer=$(get_version_composer)
   version_md=$(get_version_md)
   alert "Check versions:"
-  [[ ! -z $version_tag      ]] && alert "Version according to git tag: $version_tag"
-  [[ ! -z $version_composer ]] && alert "Version in composer.json    : $version_composer"
-  [[ ! -z $version_md       ]] && alert "Version in VERSION.md       : $version_md"
+  [[ -n $version_tag      ]] && alert "Version according to git tag: $version_tag"
+  [[ -n $version_composer ]] && alert "Version in composer.json    : $version_composer"
+  [[ -n $version_md       ]] && alert "Version in VERSION.md       : $version_md"
   safe_exit 1
 }
 
@@ -116,7 +117,7 @@ set_versions(){
     if [[ "$1" == "auto" ]] ; then
         current_semver=$(get_any_version)
         current_decver=$(semver_to_decver "$current_semver")
-        new_decver=$(($current_decver + 1))
+        new_decver=$((current_decver + 1))
         new_version=$(decver_to_semver $new_decver)
         out "0. version $current_semver -> $new_version"
     fi
@@ -154,6 +155,10 @@ set_versions(){
     wait 1
     git push --tags  2>&1 | grep 'new tag'
     safe_exit
+}
+
+commit_and_push(){
+  git commit -a && git push
 }
 #####################################################################
 ## HELPER FUNCTIONS FROM https://github.com/pforret/bash-boilerplate/
