@@ -29,6 +29,8 @@ main(){
 
     [[ "$1" == "push" ]]  && commit_and_push
     [[ "$1" == "commit" ]]  && commit_and_push
+
+    die "Don't understand action [$1]"
 }
 
 #####################################################################
