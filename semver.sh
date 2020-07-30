@@ -159,6 +159,7 @@ set_versions(){
 
 commit_and_push(){
   git commit -a && git push
+  safe_exit
 }
 #####################################################################
 ## HELPER FUNCTIONS FROM https://github.com/pforret/bash-boilerplate/
