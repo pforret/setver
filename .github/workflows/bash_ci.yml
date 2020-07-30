@@ -17,6 +17,3 @@ jobs:
 
     - name: Check for basic execution
       run: ls ./*.sh | xargs bash
-
-    - name: Unit testing with bash_unit
-      run: tests/bash_unit tests/test_*
