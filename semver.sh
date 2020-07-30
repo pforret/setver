@@ -21,7 +21,7 @@ main(){
     [[ -z "$1" ]] && show_usage_and_quit
 
     # there is always a composer version, not always a tag version
-    [[ "$1" == "get" ]]   && get_version_composer && safe_exit
+    [[ "$1" == "get" ]]   && get_any_version && safe_exit
 
     [[ "$1" == "check" ]] && check_versions
     [[ "$1" == "set" ]]   && set_versions "$2"
@@ -38,11 +38,11 @@ check_requirements(){
 }
 
 semver_to_decver(){
-    echo $1 | awk -F '.' '{print int($1)*1000000 + int($2)*1000 + int($3)}'
+    echo "$1" | awk -F '.' '{print int($1)*1000000 + int($2)*1000 + int($3)}'
 }
 
 decver_to_semver(){
-    echo $1 | awk '{print int($1/1000000) "." int(($1/1000) % 1000) "." int($1 % 1000)}'
+    echo "$1" | awk '{print int($1/1000000) "." int(($1/1000) % 1000) "." int($1 % 1000)}'
 }
 
 show_usage_and_quit(){
@@ -57,16 +57,33 @@ END
 }
 
 
+get_any_version(){
+  local version=0.0.0
+  if [[ $uses_composer -gt 0 ]] ; then
+    version=$(composer config version)
+  fi
+  if [[ ! -z $(get_version_tag) ]] ; then
+    version=$(get_version_tag)
+  fi
+  echo $version
+}
+
 get_version_tag(){
     git tag | tail -1 | sed 's/v//'
     }
 
 get_version_composer(){
-    composer config version
+    if [[ $uses_composer -gt 0 ]] ; then 
+      composer config version
+    else
+      echo " "
+    fi
     }
 
 set_version_composer(){
-    composer config version "$1"
+    if [[ $uses_composer -gt 0 ]] ; then 
+      composer config version "$1"
+    fi
 }
 
 set_version_tag(){
@@ -91,30 +108,31 @@ set_versions(){
     remote_url=$(git config remote.origin.url)
     new_version="$1"
     if [[ "$1" == "auto" ]] ; then
-        current_semver=$(get_version_composer)
+        current_semver=$(get_any_version)
         current_decver=$(semver_to_decver "$current_semver")
         new_decver=$(($current_decver + 1))
         new_version=$(decver_to_semver $new_decver)
         out "0. version $current_semver -> $new_version"
     fi
     # first change composer.json
-    out "1. set version in composer.json"
-    sleep 1
-    set_version_composer "$new_version"
+    if [[ $uses_composer -gt 0 ]] ; then 
+      out "1. set version in composer.json"
+      wait 1
+      set_version_composer "$new_version"
 
-    # commit composer.json and push it
-    out "2. commit new composer.json"
-    sleep 1
-    ( git add composer.json && git commit -m "semver.sh: set version to $new_version" && git push ) 2>&1 | grep 'semver'
-
+      # commit composer.json and push it
+      out "2. commit new composer.json"
+      wait 1
+      ( git add composer.json && git commit -m "semver.sh: set version to $new_version" && git push ) 2>&1 | grep 'semver'
+    fi
     # now create new version tag
     out "3. set git version tag"
-    sleep 1
+    wait 1
     set_version_tag "$new_version"
 
     # also push tags to github/bitbucket
     out "4. push tags to $remote_url"
-    sleep 1
+    wait 1
     git push --tags  2>&1 | grep 'new tag'
     safe_exit
 }
@@ -151,9 +169,10 @@ else
   readonly char_wait="..."
 fi
 
-out() {     printf '%b\n' "$*"; }
+out()     { printf '%b\n' "$*"; }
+wait()    { printf '%b\r' "$char_wait" && sleep "$1"; }
 success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
-alert()   { out "${col_red}${char_alrt}${col_reset}: $*" >&2 ; }
+alert()   { out "${col_ylw}${char_alrt}${col_reset}: $*" >&2 ; }
 die()     { tput bel; out "${col_red}${char_fail} $PROGIDEN${col_reset}: $*" >&2; safe_exit; }
 
 error_prefix="${col_red}>${col_reset}"
