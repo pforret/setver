@@ -117,9 +117,9 @@ set_versions(){
     new_version="$1"
     do_git_push=0
     current_semver=$(get_any_version)
-    semver_major=$(echo $current_semver | cut -d. -f1)
-    semver_minor=$(echo $current_semver | cut -d. -f2)
-    semver_patch=$(echo $current_semver | cut -d. -f3)
+    semver_major=$(echo "$current_semver" | cut -d. -f1)
+    semver_minor=$(echo "$current_semver" | cut -d. -f2)
+    semver_patch=$(echo "$current_semver" | cut -d. -f3)
     case "$new_version" in
       "auto"|"patch"|"fix")
         new_version="$semver_major.$semver_minor.$((semver_patch +1))"
