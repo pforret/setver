@@ -22,9 +22,10 @@ main(){
 
     # there is always a composer version, not always a tag version
     [[ "$1" == "get" ]]   && get_any_version && safe_exit
-
     [[ "$1" == "check" ]] && check_versions
+
     [[ "$1" == "set" ]]   && set_versions "$2"
+    
     [[ "$1" == "push" ]]  && commit_and_push
 }
 
@@ -36,14 +37,6 @@ check_requirements(){
     git --version > /dev/null 2>&1 || die "ERROR: git is not installed on this machine"
     git status    > /dev/null 2>&1 || die "ERROR: this folder [] is not a git repository"
     [[ -d .git ]] || die "ERROR: $SCRIPT_NAME should be run from the git repo root"
-}
-
-semver_to_decver(){
-    echo "$1" | awk -F '.' '{print int($1)*1000000 + int($2)*1000 + int($3)}'
-}
-
-decver_to_semver(){
-    echo "$1" | awk '{print int($1/1000000) "." int(($1/1000) % 1000) "." int($1 % 1000)}'
 }
 
 show_usage_and_quit(){
@@ -114,13 +107,24 @@ set_versions(){
     remote_url=$(git config remote.origin.url)
     new_version="$1"
     do_git_push=0
-    if [[ "$1" == "auto" ]] ; then
-        current_semver=$(get_any_version)
-        current_decver=$(semver_to_decver "$current_semver")
-        new_decver=$((current_decver + 1))
-        new_version=$(decver_to_semver $new_decver)
+    current_semver=$(get_any_version)
+    semver_major=$(echo $current_semver | cut -d. -f1)
+    semver_minor=$(echo $current_semver | cut -d. -f2)
+    semver_patch=$(echo $current_semver | cut -d. -f3)
+    case "$new_version" in
+      "auto"|"patch"|"fix")
+        new_version="$semver_major.$semver_minor.$((semver_patch +1))"
         out "0. version $current_semver -> $new_version"
-    fi
+        ;;
+      "minor")
+        new_version="$semver_major.$((semver_minor + 1)).0"
+        out "0. version $current_semver -> $new_version"
+        ;;
+      "major")
+        new_version="$((semver_major + 1)).0.0"
+        out "0. version $current_semver -> $new_version"
+        ;;
+    esac
 
     if [[ -f VERSION.md ]] ; then
       # for bash repos
