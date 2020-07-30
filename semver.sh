@@ -58,25 +58,33 @@ END
 
 
 get_any_version(){
-  local version=0.0.0
+  local version="0.0.0"
   if [[ $uses_composer -gt 0 ]] ; then
     version=$(composer config version)
   fi
   if [[ ! -z $(get_version_tag) ]] ; then
     version=$(get_version_tag)
   fi
-  echo $version
+  echo "$version"
 }
 
 get_version_tag(){
     git tag | tail -1 | sed 's/v//'
     }
 
+get_version_md(){
+    if [[ -f VERSION.md ]] ; then
+      cat VERSION.md
+    else
+      echo ""
+    fi
+    }
+
 get_version_composer(){
     if [[ $uses_composer -gt 0 ]] ; then 
       composer config version
     else
-      echo " "
+      echo ""
     fi
     }
 
@@ -91,17 +99,14 @@ set_version_tag(){
 }
 
 check_versions(){
-    version_tag=$(get_version_tag)
-    version_composer=$(get_version_composer)
-    if [[ "$version_tag" == "$version_composer" ]] ; then
-        success "Version: $version_tag (both as git tag and in composer)"
-        safe_exit
-    else
-        alert "Version conflict!"
-        alert "Version according to git tag: $version_tag"
-        alert "Version in composer.json    : $version_composer"
-       safe_exit 1
-    fi
+  version_tag=$(get_version_tag)
+  version_composer=$(get_version_composer)
+  version_md=$(get_version_md)
+  alert "Check versions:"
+  [[ ! -z $version_tag      ]] && alert "Version according to git tag: $version_tag"
+  [[ ! -z $version_composer ]] && alert "Version in composer.json    : $version_composer"
+  [[ ! -z $version_md       ]] && alert "Version in VERSION.md       : $version_md"
+  safe_exit 1
 }
 
 set_versions(){
@@ -114,8 +119,15 @@ set_versions(){
         new_version=$(decver_to_semver $new_decver)
         out "0. version $current_semver -> $new_version"
     fi
-    # first change composer.json
+
+    if [[ -f VERSION.md ]] ; then
+      # for bash repos
+      echo "$new_version" > VERSION.md
+    fi
+
     if [[ $uses_composer -gt 0 ]] ; then 
+      # for PHP repos
+      # first change composer.json
       out "1. set version in composer.json"
       wait 1
       set_version_composer "$new_version"
