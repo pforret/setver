@@ -145,7 +145,8 @@ set_versions(){
         ;;
     esac
     # TODO: fully support  [<newversion> | major | minor | patch | premajor | preminor | prepatch | prerelease [--preid=<prerelease-id>] | from-git]
-
+    
+    skip_git_tag=0
     ### package.json
     if [[ $uses_npm -gt 0 ]] ; then 
       # for NPM/node repos
@@ -153,6 +154,7 @@ set_versions(){
       out "> set version in package.json"
       wait 1
       npm version "$new_version"
+      skip_git_tag=1 # npm also creates the tag
       git add package.json
       do_git_push=1
     fi
@@ -183,10 +185,13 @@ set_versions(){
       wait 1
       ( git commit -m "semver.sh: set version to $new_version" && git push ) 2>&1 | grep 'semver'
     fi
+    
     # now create new version tag
-    out "> set git version tag"
-    wait 1
-    git tag "v$new_version"
+    if [[ $skip_git_tag == 0 ]] ; then
+      out "> set git version tag"
+      wait 1
+      git tag "v$new_version"
+    fi
 
     # also push tags to github/bitbucket
     out "> push tags to $remote_url"
