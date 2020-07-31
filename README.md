@@ -1,4 +1,4 @@
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/pforret/semver)
+![GitHub tag](https://img.shields.io/github/v/tag/pforret/semver)
 ![Shellcheck CI](https://github.com/pforret/semver/workflows/Shellcheck%20CI/badge.svg)
 ![Bash CI](https://github.com/pforret/semver/workflows/Bash%20CI/badge.svg)
 ![GitHub](https://img.shields.io/github/license/pforret/semver)
@@ -35,6 +35,9 @@
 2. symlink the script to a location in your path: `ln -s <cloned_folder>/semver.sh /usr/local/bin/`
 3. call semver.sh from the root of your git repo
 
+or with [basher](https://github.com/basherpm/basher)
+
+`basher install pforret/semver`
 
 ## References
 * https://semver.org/
