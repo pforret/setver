@@ -1,7 +1,8 @@
 #!/bin/bash
 
 readonly SCRIPT_NAME=$(basename "$0")
-readonly SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="?.?.?"
+# will be retrieved later
 readonly SCRIPT_AUTHOR="Peter Forret <peter@forret.com>"
 readonly PROG_DIRNAME=$(dirname "$0")
 if [[ -z "$PROG_DIRNAME" ]] ; then
@@ -9,6 +10,7 @@ if [[ -z "$PROG_DIRNAME" ]] ; then
   readonly PROG_PATH=$(which "$0")
   readonly PROG_FOLDER=$(dirname "$PROG_PATH")
 else
+  # script called directly
   readonly PROG_FOLDER=$(cd "$PROG_DIRNAME" && pwd)
   readonly PROG_PATH="$PROG_FOLDER/$SCRIPT_NAME"
 fi
@@ -24,14 +26,15 @@ main(){
 
     # there is always a composer version, not always a tag version
     [[ "$1" == "get" ]]   && get_any_version && safe_exit
-    [[ "$1" == "check" ]] && check_versions
+    [[ "$1" == "check" ]] && check_versions  && safe_exit
 
-    [[ "$1" == "set" ]]   && set_versions "$2"
-    [[ "$1" == "new" ]]   && set_versions "$2"
-    [[ "$1" == "version" ]]   && set_versions "$2" # works like npm version
+    [[ "$1" == "set" ]]       && set_versions "$2" && safe_exit
+    [[ "$1" == "new" ]]       && set_versions "$2" && safe_exit
+    [[ "$1" == "bump" ]]      && set_versions "$2" && safe_exit
+    [[ "$1" == "version" ]]   && set_versions "$2" && safe_exit # works like npm version
 
-    [[ "$1" == "push" ]]  && commit_and_push
-    [[ "$1" == "commit" ]]  && commit_and_push
+    [[ "$1" == "push" ]]      && commit_and_push && safe_exit
+    [[ "$1" == "commit" ]]    && commit_and_push && safe_exit
 
     die "Don't understand action [$1]"
 }
@@ -44,20 +47,19 @@ check_requirements(){
     git --version > /dev/null 2>&1 || die "ERROR: git is not installed on this machine"
     git status    > /dev/null 2>&1 || die "ERROR: this folder [] is not a git repository"
     [[ -d .git ]] || die "ERROR: $SCRIPT_NAME should be run from the git repo root"
+    SCRIPT_VERSION=$(get_any_version)
 }
 
 show_usage_and_quit(){
         cat <<END >&2
 # $SCRIPT_NAME v$SCRIPT_VERSION - by $SCRIPT_AUTHOR
 # Usage:
-    $SCRIPT_NAME get: get current version (from git tag and composer)
+    $SCRIPT_NAME get: get current version (from git tag and composer) -- can be used in scripts
     $SCRIPT_NAME check: compare versions of git tag and composer
     $SCRIPT_NAME set <version>: set current version through git tag and composer
     $SCRIPT_NAME set major: new major version e.g. 2.5.17 -> 3.0.0
     $SCRIPT_NAME set minor: new minor version e.g. 2.5.17 -> 2.6.0
     $SCRIPT_NAME set patch: new patch version e.g. 2.5.17 -> 2.5.18
-    $SCRIPT_NAME set auto: see set patch
-    $SCRIPT_NAME set fix: see set patch
 END
     safe_exit
 }
@@ -115,7 +117,6 @@ check_versions(){
   [[ -n $version_composer ]] && alert "Version in composer.json : $version_composer"
   [[ -n $version_md       ]] && alert "Version in VERSION.md    : $version_md"
   [[ -n $version_npm      ]] && alert "Version in package.json  : $version_npm"
-  safe_exit 1
 }
 
 set_versions(){
@@ -197,12 +198,10 @@ set_versions(){
     out "> push tags to $remote_url"
     wait 1
     git push --tags  2>&1 | grep 'new tag'
-    safe_exit
 }
 
 commit_and_push(){
   git commit -a && git push
-  safe_exit
 }
 #####################################################################
 ## HELPER FUNCTIONS FROM https://github.com/pforret/bash-boilerplate/
