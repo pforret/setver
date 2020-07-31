@@ -146,14 +146,14 @@ set_versions(){
     esac
     # TODO: fully support  [<newversion> | major | minor | patch | premajor | preminor | prepatch | prerelease [--preid=<prerelease-id>] | from-git]
 
-
-    ### VERSION.md
-    if [[ -f VERSION.md ]] ; then
-      # for bash repos
-      out "> set version in VERSION.md"
+    ### package.json
+    if [[ $uses_npm -gt 0 ]] ; then 
+      # for NPM/node repos
+      # first change package.json
+      out "> set version in package.json"
       wait 1
-      echo "$new_version" > VERSION.md
-      git add VERSION.md
+      npm version "$new_version"
+      git add package.json
       do_git_push=1
     fi
 
@@ -168,14 +168,13 @@ set_versions(){
       do_git_push=1
     fi
 
-    ### package.json
-    if [[ $uses_npm -gt 0 ]] ; then 
-      # for NPM/node repos
-      # first change package.json
-      out "> set version in package.json"
+    ### VERSION.md
+    if [[ -f VERSION.md ]] ; then
+      # for bash repos
+      out "> set version in VERSION.md"
       wait 1
-      npm version "$new_version"
-      git add package.json
+      echo "$new_version" > VERSION.md
+      git add VERSION.md
       do_git_push=1
     fi
 
@@ -187,7 +186,7 @@ set_versions(){
     # now create new version tag
     out "> set git version tag"
     wait 1
-    git tag "$new_version"
+    git tag "v$new_version"
 
     # also push tags to github/bitbucket
     out "> push tags to $remote_url"
