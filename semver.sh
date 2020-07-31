@@ -14,7 +14,9 @@ else
 fi
 
 uses_composer=0
+uses_npm=0
 [[ -f "composer.json" ]] && uses_composer=1
+[[ -f "package.json" ]]  && uses_npm=1
 
 main(){
     check_requirements
@@ -26,6 +28,7 @@ main(){
 
     [[ "$1" == "set" ]]   && set_versions "$2"
     [[ "$1" == "new" ]]   && set_versions "$2"
+    [[ "$1" == "version" ]]   && set_versions "$2" # works like npm version
 
     [[ "$1" == "push" ]]  && commit_and_push
     [[ "$1" == "commit" ]]  && commit_and_push
@@ -65,6 +68,9 @@ get_any_version(){
   if [[ $uses_composer -gt 0 ]] ; then
     version=$(composer config version)
   fi
+  if [[ $uses_npm -gt 0 ]] ; then
+    version=$(get_version_npm)
+  fi
   if [[ -n $(get_version_tag) ]] ; then
     version=$(get_version_tag)
   fi
@@ -91,28 +97,32 @@ get_version_composer(){
     fi
     }
 
-set_version_composer(){
-    if [[ $uses_composer -gt 0 ]] ; then 
-      composer config version "$1"
+get_version_npm(){
+    if [[ $uses_npm -gt 0 ]] ; then 
+      npm version | grep semver | cut -d\' -f2
+    else
+      echo ""
     fi
-}
-
-set_version_tag(){
-    git tag "v$1"
-}
+    }
 
 check_versions(){
   version_tag=$(get_version_tag)
   version_composer=$(get_version_composer)
   version_md=$(get_version_md)
+  version_npm=$(get_version_npm)
   alert "Check versions:"
-  [[ -n $version_tag      ]] && alert "Version according to git tag: $version_tag"
-  [[ -n $version_composer ]] && alert "Version in composer.json    : $version_composer"
-  [[ -n $version_md       ]] && alert "Version in VERSION.md       : $version_md"
+  [[ -n $version_tag      ]] && alert "Version in git tag       : $version_tag"
+  [[ -n $version_composer ]] && alert "Version in composer.json : $version_composer"
+  [[ -n $version_md       ]] && alert "Version in VERSION.md    : $version_md"
+  [[ -n $version_npm      ]] && alert "Version in package.json  : $version_npm"
   safe_exit 1
 }
 
 set_versions(){
+    git_status=$(git status -s)
+    if [[ -n "$git_status" ]] ; then
+      die "ERROR: Git working directory not clean (check 'git status') "
+    fi
     remote_url=$(git config remote.origin.url)
     new_version="$1"
     do_git_push=0
@@ -134,37 +144,53 @@ set_versions(){
         out "0. version $current_semver -> $new_version"
         ;;
     esac
+    # TODO: fully support  [<newversion> | major | minor | patch | premajor | preminor | prepatch | prerelease [--preid=<prerelease-id>] | from-git]
 
+
+    ### VERSION.md
     if [[ -f VERSION.md ]] ; then
       # for bash repos
-      out "1. set version in VERSION.md"
+      out "> set version in VERSION.md"
       wait 1
       echo "$new_version" > VERSION.md
       git add VERSION.md
       do_git_push=1
     fi
 
+    ### composer.json
     if [[ $uses_composer -gt 0 ]] ; then 
       # for PHP repos
       # first change composer.json
-      out "1. set version in composer.json"
+      out "> set version in composer.json"
       wait 1
-      set_version_composer "$new_version"
+      composer config version "$new_version"
       git add composer.json
       do_git_push=1
     fi
+
+    ### package.json
+    if [[ $uses_npm -gt 0 ]] ; then 
+      # for NPM/node repos
+      # first change package.json
+      out "> set version in package.json"
+      wait 1
+      npm version "$new_version"
+      git add package.json
+      do_git_push=1
+    fi
+
     if [[ $do_git_push -gt 0 ]] ; then
-      out "2. commit and push changed files"
+      out "> commit and push changed files"
       wait 1
       ( git commit -m "semver.sh: set version to $new_version" && git push ) 2>&1 | grep 'semver'
     fi
     # now create new version tag
-    out "3. set git version tag"
+    out "> set git version tag"
     wait 1
-    set_version_tag "$new_version"
+    git tag "$new_version"
 
     # also push tags to github/bitbucket
-    out "4. push tags to $remote_url"
+    out "> push tags to $remote_url"
     wait 1
     git push --tags  2>&1 | grep 'new tag'
     safe_exit

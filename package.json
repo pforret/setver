@@ -1,0 +1,22 @@
+{
+  "name": "semver",
+  "version": "1.4.1",
+  "description": "Semantic Versioning helper script for PHP/bash packages -- works with Github/Bitbucket/Packagist",
+  "main": "semver.sh",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pforret/semver.git"
+  },
+  "keywords": [
+    "semver"
+  ],
+  "author": "Peter Forret",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pforret/semver/issues"
+  },
+  "homepage": "https://github.com/pforret/semver#readme"
+}
