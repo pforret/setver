@@ -5,10 +5,11 @@
 
 # semver.sh
 
-* Semantic Versioning helper script
-* get and set semver version numbers
-* works for PHP packages: composer.json, packagist, git tag
-* works for bash/shell scripts: git tag, VERSION.md
+* Semantic Versioning helper script, to get and set semver version numbers
+* handles versioning for composer.json: for PHP, composer packages
+* handles versioning for package.json: for node, npm
+* handles versioning for VERSION.md: for bash
+* handles versioning by 'git tag': for Github, Bitbucket
 
 ## Usage
 
@@ -16,24 +17,22 @@
 * `semver.sh get`: get current version (from git tag and composer)
 * `semver.sh check`: compare versions of git tag and composer
 * `semver.sh set <version>`: set current version through git tag and composer
-* `semver.sh set major`: add +1 major version e.g. 2.4.17 -> 3.0.0
-* `semver.sh set minor`: add +1 minor version e.g. 2.4.17 -> 2.5.0
-* `semver.sh set patch`: add +1 patch version e.g. 2.4.17 -> 2.4.18
-* `semver.sh set auto`: same as patch
-* `semver.sh set fix`: same as patch
+* `semver.sh new major`: add +1 major version e.g. 2.4.17 -> 3.0.0
+* `semver.sh new minor`: add +1 minor version e.g. 2.4.17 -> 2.5.0
+* `semver.sh new patch`: add +1 patch version e.g. 2.4.17 -> 2.4.18
 
 ## Install
 
-### per project 
+### per project
 
-1. download https://raw.githubusercontent.com/pforret/semver/master/semver.sh in the root of your git repo
+1. go to the root of your git repo
+1. `wget https://raw.githubusercontent.com/pforret/semver/master/semver.sh`
 2. `chmod +x semver.sh`
 3. `./semver.sh check`
 
 ### global
-1. git clone this repo
+1. `git clone https://github.com/pforret/semver.git`
 2. symlink the script to a location in your path: `ln -s <cloned_folder>/semver.sh /usr/local/bin/`
-3. call semver.sh from the root of your git repo
 
 or with [basher](https://github.com/basherpm/basher)
 
