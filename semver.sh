@@ -132,17 +132,18 @@ set_versions(){
     semver_minor=$(echo "$current_semver" | cut -d. -f2)
     semver_patch=$(echo "$current_semver" | cut -d. -f3)
     case "$new_version" in
-      "auto"|"patch"|"fix")
-        new_version="$semver_major.$semver_minor.$((semver_patch +1))"
-        out "0. version $current_semver -> $new_version"
+      "major")
+        new_version="$((semver_major + 1)).0.0"
+        progress "version $current_semver -> $new_version"
         ;;
       "minor")
         new_version="$semver_major.$((semver_minor + 1)).0"
-        out "0. version $current_semver -> $new_version"
+        progress "version $current_semver -> $new_version"
         ;;
-      "major")
-        new_version="$((semver_major + 1)).0.0"
-        out "0. version $current_semver -> $new_version"
+      *)
+      # supports auto|patch|fix
+        new_version="$semver_major.$semver_minor.$((semver_patch +1))"
+        progress "version $current_semver -> $new_version"
         ;;
     esac
     # TODO: fully support  [<newversion> | major | minor | patch | premajor | preminor | prepatch | prerelease [--preid=<prerelease-id>] | from-git]
@@ -152,7 +153,7 @@ set_versions(){
     if [[ $uses_npm -gt 0 ]] ; then 
       # for NPM/node repos
       # first change package.json
-      out "> set version in package.json"
+      progress "set version in package.json"
       wait 1
       npm version "$new_version"
       skip_git_tag=1 # npm also creates the tag
@@ -164,7 +165,7 @@ set_versions(){
     if [[ $uses_composer -gt 0 ]] ; then 
       # for PHP repos
       # first change composer.json
-      out "> set version in composer.json"
+      progress "set version in composer.json"
       wait 1
       composer config version "$new_version"
       git add composer.json
@@ -174,7 +175,7 @@ set_versions(){
     ### VERSION.md
     if [[ -f VERSION.md ]] ; then
       # for bash repos
-      out "> set version in VERSION.md"
+      progress "set version in VERSION.md"
       wait 1
       echo "$new_version" > VERSION.md
       git add VERSION.md
@@ -182,20 +183,20 @@ set_versions(){
     fi
 
     if [[ $do_git_push -gt 0 ]] ; then
-      out "> commit and push changed files"
+      progress "commit and push changed files"
       wait 1
-      ( git commit -m "semver.sh: set version to $new_version" && git push ) 2>&1 | grep 'semver'
+      ( git commit -m "semver.sh: set version to $new_version [skip ci]" && git push ) 2>&1 | grep 'semver'
     fi
     
     # now create new version tag
     if [[ $skip_git_tag == 0 ]] ; then
-      out "> set git version tag"
+      progress "set git version tag"
       wait 1
       git tag "v$new_version"
     fi
 
     # also push tags to github/bitbucket
-    out "> push tags to $remote_url"
+    progress "push tags to $remote_url"
     wait 1
     git push --tags  2>&1 | grep 'new tag'
 }
@@ -237,6 +238,7 @@ else
 fi
 
 out()     { printf '%b\n' "$*"; }
+progress(){ printf '. %b\n' "$*"; }
 wait()    { printf '%b\r' "$char_wait" && sleep "$1"; }
 success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
 alert()   { out "${col_ylw}${char_alrt}${col_reset}: $*" >&2 ; }
