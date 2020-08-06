@@ -190,12 +190,10 @@ set_versions(){
       "major")
         new_version="$((semver_major + 1)).0.0"
         success "version $current_semver -> $new_version"
-        add_to_changelog "$new_version"
        ;;
       "minor")
         new_version="$semver_major.$((semver_minor + 1)).0"
         success "version $current_semver -> $new_version"
-        add_to_changelog "$new_version"
         ;;
       *)
       # supports auto|patch|fix

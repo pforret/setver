@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.0] - 2020-08-06
 ### Added/changed
 - Write temp file with echo
-- Auto-add new lines to CHANEGLOG.md iwth 'semver.sh changes'
+- Auto-add new lines to CHANEGLOG.md with 'semver.sh changes'
 - Add support for automatic CHANGELOG appending
  
 ## [1.6.0] - 2020-08-06
