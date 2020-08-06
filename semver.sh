@@ -23,6 +23,10 @@ uses_npm=0
 main(){
     check_requirements
     [[ -z "$1" ]] && show_usage_and_quit
+    
+    skip_ci=0
+    [[ "$1" == "-s" ]] && skip_ci=1 && shift
+    [[ "$1" == "--skip-ci" ]] && skip_ci=1 && shift
 
     # there is always a composer version, not always a tag version
     [[ "$1" == "get" ]]   && get_any_version && safe_exit
@@ -134,16 +138,16 @@ set_versions(){
     case "$new_version" in
       "major")
         new_version="$((semver_major + 1)).0.0"
-        progress "version $current_semver -> $new_version"
+        success "version $current_semver -> $new_version"
         ;;
       "minor")
         new_version="$semver_major.$((semver_minor + 1)).0"
-        progress "version $current_semver -> $new_version"
+        success "version $current_semver -> $new_version"
         ;;
       *)
       # supports auto|patch|fix
         new_version="$semver_major.$semver_minor.$((semver_patch +1))"
-        progress "version $current_semver -> $new_version"
+        success "version $current_semver -> $new_version"
         ;;
     esac
     # TODO: fully support  [<newversion> | major | minor | patch | premajor | preminor | prepatch | prerelease [--preid=<prerelease-id>] | from-git]
@@ -153,7 +157,7 @@ set_versions(){
     if [[ $uses_npm -gt 0 ]] ; then 
       # for NPM/node repos
       # first change package.json
-      progress "set version in package.json"
+      success "set version in package.json"
       wait 1
       npm version "$new_version"
       skip_git_tag=1 # npm also creates the tag
@@ -165,7 +169,7 @@ set_versions(){
     if [[ $uses_composer -gt 0 ]] ; then 
       # for PHP repos
       # first change composer.json
-      progress "set version in composer.json"
+      success "set version in composer.json"
       wait 1
       composer config version "$new_version"
       git add composer.json
@@ -175,7 +179,7 @@ set_versions(){
     ### VERSION.md
     if [[ -f VERSION.md ]] ; then
       # for bash repos
-      progress "set version in VERSION.md"
+      success "set version in VERSION.md"
       wait 1
       echo "$new_version" > VERSION.md
       git add VERSION.md
@@ -183,26 +187,32 @@ set_versions(){
     fi
 
     if [[ $do_git_push -gt 0 ]] ; then
-      progress "commit and push changed files"
+      success "commit and push changed files"
       wait 1
       ( git commit -m "semver.sh: set version to $new_version [skip ci]" && git push ) 2>&1 | grep 'semver'
     fi
     
     # now create new version tag
     if [[ $skip_git_tag == 0 ]] ; then
-      progress "set git version tag"
+      success "set git version tag"
       wait 1
       git tag "v$new_version"
     fi
 
     # also push tags to github/bitbucket
-    progress "push tags to $remote_url"
+    success "push tags to $remote_url"
     wait 1
     git push --tags  2>&1 | grep 'new tag'
 }
 
 commit_and_push(){
-  git commit -a && git push
+  if [[ $skip_ci -gt 0 ]] ; then
+    alert "Don't forget to add [skip_ci] to your commit message to avoid running CI/CD"
+    sleep 1
+    git commit -a && git push
+  else
+    git commit -a && git push
+  fi
 }
 #####################################################################
 ## HELPER FUNCTIONS FROM https://github.com/pforret/bash-boilerplate/
@@ -212,13 +222,13 @@ commit_and_push(){
 [[ $(echo -e '\xe2\x82\xac') == '€' ]] && supports_unicode=1 || supports_unicode=0 # detect if supports_unicode is supported
 
 if [[ $output_to_pipe -eq 0 ]] ; then
-  readonly col_reset="\033[0m"
+  readonly col_def="\033[0m"
   readonly col_red="\033[1;31m"
   readonly col_grn="\033[1;32m"
   readonly col_ylw="\033[1;33m"
 else
   # no colors for output_to_pipe content
-  readonly col_reset=""
+  readonly col_def=""
   readonly col_red=""
   readonly col_grn=""
   readonly col_ylw=""
@@ -238,13 +248,12 @@ else
 fi
 
 out()     { printf '%b\n' "$*"; }
-progress(){ printf '. %b\n' "$*"; }
 wait()    { printf '%b\r' "$char_wait" && sleep "$1"; }
-success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
-alert()   { out "${col_ylw}${char_alrt}${col_reset}: $*" >&2 ; }
-die()     { tput bel; out "${col_red}${char_fail} $PROGIDEN${col_reset}: $*" >&2; safe_exit; }
+success() { out "${col_grn}${char_succ}${col_def}  $*"; }
+alert()   { out "${col_ylw}${char_alrt}${col_def}: $*" >&2 ; }
+die()     { tput bel; out "${col_red}${char_fail} $PROGIDEN${col_def}: $*" >&2; safe_exit; }
 
-error_prefix="${col_red}>${col_reset}"
+error_prefix="${col_red}>${col_def}"
 trap "die \"ERROR \$? after \$SECONDS seconds \n\
 \${error_prefix} last command : '\$BASH_COMMAND' \" \
 \$(< \$PROG_PATH awk -v lineno=\$LINENO \
@@ -255,4 +264,4 @@ safe_exit() {
   exit 0
 }
 
-main "$1" "$2"
+main "$1" "$2" "$3"
