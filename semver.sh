@@ -203,6 +203,15 @@ set_versions(){
     success "push tags to $remote_url"
     wait 1
     git push --tags  2>&1 | grep 'new tag'
+
+    web_url=$(echo "$remote_url" | cut -d: -f2)
+    # should be like <username>/<repo>.git
+    if [[ -n "$web_url" ]] ; then
+      username=$(dirname "$web_url")
+      reponame=$(basename "$web_url" .git)
+      web_url="https://github.com/$username/$reponame"
+      success "to create a release, go to $web_url"
+    fi
 }
 
 commit_and_push(){

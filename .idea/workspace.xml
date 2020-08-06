@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9cc8877b-0cc0-47a4-9ded-085ede545a86" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/semver.sh" beforeDir="false" afterPath="$PROJECT_DIR$/semver.sh" afterDir="false" />
     </list>
@@ -43,7 +42,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1596696753799</updated>
-      <workItem from="1596696754956" duration="2906000" />
+      <workItem from="1596696754956" duration="3672000" />
     </task>
     <servers />
   </component>
