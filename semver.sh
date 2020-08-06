@@ -119,14 +119,14 @@ add_to_changelog(){
   if [[ -f "$changelog" ]] ; then
     today=$(date '+%Y-%m-%d')
     temp_file=.CHANGELOG.tmp
-cat > $temp_file <<END
-## [$version] - $today
-### Added/changed
-END
-    git log -3 --pretty=format:"%s"  --grep '\.[0-9]' --invert-grep \
-    | sed 's/^/- /' \
-    >> $temp_file
-    echo " " >> $temp_file
+    (
+      echo "## [$version] - $today"
+      echo "### Added/changed"
+      # take last 3 commits that were not version-related
+      git log -3 --pretty=format:"%s"  --grep '\.[0-9]' --invert-grep \
+      | sed 's/^/- /'
+      echo " "
+    ) > $temp_file
     < "$changelog" \
       awk \
         '
