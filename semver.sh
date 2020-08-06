@@ -153,7 +153,8 @@ add_to_changelog(){
          > $changelog.tmp
       if [[ -s  "$changelog.tmp" ]] ; then
         success "added to $changelog:"
-        echo "$from_commits"
+        cat $temp_file
+        rm $temp_file
         rm $changelog
         mv $changelog.tmp $changelog
         git add $changelog
