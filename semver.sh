@@ -241,7 +241,7 @@ set_versions(){
     if [[ $do_git_push -gt 0 ]] ; then
       success "commit and push changed files"
       wait 1
-      ( git commit -m "semver.sh: set version to $new_version [skip_ci]" && git push ) 2>&1 | grep 'semver'
+      ( git commit -m "semver.sh: set version to $new_version"  -m "[skip ci]" && git push ) 2>&1 | grep 'semver'
     fi
     
     # now create new version tag
