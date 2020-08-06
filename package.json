@@ -1,6 +1,6 @@
 {
   "name": "semver",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "Semantic Versioning helper script for PHP/bash packages -- works with Github/Bitbucket/Packagist",
   "main": "semver.sh",
   "scripts": {
