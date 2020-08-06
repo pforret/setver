@@ -8,10 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - add content to CHANGELOG.md automatically
  
-## [1.8.0] - 2020-08-06
+## [1.7.5] - 2020-08-06
+### Added/changed
+- Add [skip ci] test to CI yml's
+- Adapt README.md
+ 
+## [1.7.0] - 2020-08-06
 ### Added/changed
 - Write temp file with echo
-- Auto-add new lines to CHANEGLOG.md with 'semver.sh changes'
+- Auto-add new lines to CHANGELOG.md with 'semver.sh changes'
 - Add support for automatic CHANGELOG appending
  
 ## [1.6.0] - 2020-08-06
