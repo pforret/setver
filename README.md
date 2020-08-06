@@ -13,24 +13,19 @@
 
 ## Usage
 
-* `semver.sh push`: short for git commit -a && git push
-* `semver.sh get`: get current version (from git tag and composer)
-* `semver.sh check`: compare versions of git tag and composer
-* `semver.sh set <version>`: set current version through git tag and composer
+* `semver.sh get` : get the current version (from git tag/composer/npm)
+* `semver.sh check` : compare all versions of git tag, composer, npm, VERSION.md
+
+* `semver.sh push` : short for git commit -a && git push
+* `semver.sh changes` : add new chapter in CHANGELOG.md for latest version
+
+* `semver.sh set <version>`: set the current version through git tag and composer
 * `semver.sh new major`: add +1 major version e.g. 2.4.17 -> 3.0.0
 * `semver.sh new minor`: add +1 minor version e.g. 2.4.17 -> 2.5.0
 * `semver.sh new patch`: add +1 patch version e.g. 2.4.17 -> 2.4.18
 
-## Install
+## Installation
 
-### per project
-
-1. go to the root of your git repo
-1. `wget https://raw.githubusercontent.com/pforret/semver/master/semver.sh`
-2. `chmod +x semver.sh`
-3. `./semver.sh check`
-
-### global
 1. `git clone https://github.com/pforret/semver.git`
 2. symlink the script to a location in your path: `ln -s <cloned_folder>/semver.sh /usr/local/bin/`
 
