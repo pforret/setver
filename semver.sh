@@ -1,5 +1,4 @@
 #!/bin/bash
-
 readonly SCRIPT_NAME=$(basename "$0")
 SCRIPT_VERSION="?.?.?"
 # will be retrieved later
@@ -111,6 +110,30 @@ get_version_npm(){
     fi
     }
 
+add_to_changelog(){
+  local version="$1"
+  local changelog=CHANGELOG.md
+  if [[ -f "$changelog" ]] ; then
+    today=$(date '+%Y-%m-%d')
+    from_commits=$(git log -3 --pretty=format:"%ar : %s"  --grep '\.[0-9]' --invert-grep | sed 's/^/- /')
+    < "$changelog" \
+      awk -v message="## [$version] - $today\n### Added/changed\n$from_commits" \
+        'BEGIN {inserted=0}
+         {if($0 ~ /^## \[[0-9]/ && inserted==0){print message; inserted=1} ; print}
+         END {if(inserted==0) {print message}}' \
+         > $changelog.tmp
+      if [[ -s  "$changelog.tmp" ]] ; then
+        success "added to $changelog:"
+        echo "$from_commits"
+        rm $changelog
+        mv $changelog.tmp $changelog
+        git add $changelog
+      else
+        rm $changelog.tmp
+      fi
+    echo "something"
+  fi
+}
 check_versions(){
   version_tag=$(get_version_tag)
   version_composer=$(get_version_composer)
@@ -139,10 +162,12 @@ set_versions(){
       "major")
         new_version="$((semver_major + 1)).0.0"
         success "version $current_semver -> $new_version"
-        ;;
+        add_to_changelog "$new_version"
+       ;;
       "minor")
         new_version="$semver_major.$((semver_minor + 1)).0"
         success "version $current_semver -> $new_version"
+        add_to_changelog "$new_version"
         ;;
       *)
       # supports auto|patch|fix
