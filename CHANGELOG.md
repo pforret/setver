@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - add content to CHANGELOG.md automatically
-
+ 
 ## [1.6.0] - 2020-08-06
 ### Added
 - add [skip_ci] to git commits purely related to versioning
@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - also works for npm/package.json
 - also supports `semver.sh push`
+
 
 ## [1.0.0] - 2020-08-01
 ### Added

@@ -39,6 +39,9 @@ main(){
     [[ "$1" == "push" ]]      && commit_and_push && safe_exit
     [[ "$1" == "commit" ]]    && commit_and_push && safe_exit
 
+    [[ "$1" == "changes" ]]   && add_to_changelog "$(get_any_version)" && safe_exit
+    [[ "$1" == "changelog" ]] && add_to_changelog "$(get_any_version)" && safe_exit
+
     die "Don't understand action [$1]"
 }
 
@@ -115,12 +118,38 @@ add_to_changelog(){
   local changelog=CHANGELOG.md
   if [[ -f "$changelog" ]] ; then
     today=$(date '+%Y-%m-%d')
-    from_commits=$(git log -3 --pretty=format:"%ar : %s"  --grep '\.[0-9]' --invert-grep | sed 's/^/- /')
+    temp_file=.CHANGELOG.tmp
+cat > $temp_file <<END
+## [$version] - $today
+### Added/changed
+END
+    git log -3 --pretty=format:"%s"  --grep '\.[0-9]' --invert-grep \
+    | sed 's/^/- /' \
+    >> $temp_file
+    echo " " >> $temp_file
     < "$changelog" \
-      awk -v message="## [$version] - $today\n### Added/changed\n$from_commits" \
-        'BEGIN {inserted=0}
-         {if($0 ~ /^## \[[0-9]/ && inserted==0){print message; inserted=1} ; print}
-         END {if(inserted==0) {print message}}' \
+      awk \
+        '
+        BEGIN {
+          inserted=0
+          }
+        function copyfile(filename){
+          while ((getline line < filename) > 0) print line;
+          close(filename);
+          }
+        {
+          if($0 ~ /^## \[[0-9]/ && inserted==0) {
+            copyfile(".CHANGELOG.tmp");
+            inserted=1;
+          }
+          print $0
+        }
+        END {
+          if(inserted==0) {
+            copyfile(".CHANGELOG.tmp");
+            }
+          }
+          ' \
          > $changelog.tmp
       if [[ -s  "$changelog.tmp" ]] ; then
         success "added to $changelog:"
@@ -131,7 +160,6 @@ add_to_changelog(){
       else
         rm $changelog.tmp
       fi
-    echo "something"
   fi
 }
 check_versions(){
