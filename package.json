@@ -1,6 +1,6 @@
 {
   "name": "semver",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Semantic Versioning helper script for composer.json, package.json, git tag and VERSION.md -- works with Github/Bitbucket/Packagist",
   "main": "semver.sh",
   "scripts": {
@@ -11,7 +11,12 @@
     "url": "git+https://github.com/pforret/semver.git"
   },
   "keywords": [
-    "semver", "versioning", "composer.json", "package.json", "git tag", "git-tag"
+    "semver",
+    "versioning",
+    "composer.json",
+    "package.json",
+    "git tag",
+    "git-tag"
   ],
   "author": "Peter Forret",
   "license": "MIT",
