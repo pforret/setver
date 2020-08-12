@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - add content to CHANGELOG.md automatically
  
+## [1.9.0] - 2020-08-13
+### Added/changed
+- add semver.sh auto / add semver.sh skip-ci
+- add semver.sh history
+- fix all Github issues
+ 
 ## [1.7.5] - 2020-08-06
 ### Added/changed
 - Add [skip ci] test to CI yml's
