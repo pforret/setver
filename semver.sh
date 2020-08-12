@@ -72,6 +72,7 @@ main() {
     die "Don't understand action [$1]"
     ;;
   esac
+  safe_exit
 
 }
 
