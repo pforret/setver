@@ -16,7 +16,8 @@
     "composer.json",
     "package.json",
     "git tag",
-    "git-tag"
+    "git-tag",
+    "commit"
   ],
   "author": "Peter Forret",
   "license": "MIT",

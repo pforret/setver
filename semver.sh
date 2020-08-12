@@ -29,7 +29,7 @@ main() {
 
   case "$1" in
   -h)
-    #USAGE: semver.sh -h : show detailed usage info
+    #USAGE: semver.sh -h       : show detailed usage info
     show_usage_and_quit 1
     ;;
 
@@ -55,6 +55,18 @@ main() {
     #USAGE: semver.sh push     : commit and push changed files
     #USAGE:   also: semver.sh commit
     commit_and_push
+    ;;
+
+  skip | skip-ci | skipci)
+    #USAGE: semver.sh push     : commit and push changed files
+    #USAGE:   also: semver.sh commit
+    commit_and_push skipci
+    ;;
+
+  auto )
+    #USAGE: semver.sh push     : commit and push changed files
+    #USAGE:   also: semver.sh commit
+    commit_and_push auto
     ;;
 
   changes | changelog)
@@ -318,13 +330,27 @@ commit_and_push() {
   set +e
   trap - INT TERM EXIT
 
+  mode=${1:-}
+
+  default_message="$(git diff --compact-summary  | tail -1): $(git diff --compact-summary  | awk -F\| '/\|/ {print $1 "," }' | xargs)"
+  case "$mode" in
+  skip-ci|skipci)
+    success "Commit: $default_message [skip ci]"
+    git commit -a -m "$default_message" -m "[skip ci]" && git push
+    ;;
+
+  auto | fast)
+    success "Commit: $default_message"
+    git commit -a -m "$default_message" && git push
+    ;;
+
+  esac
+
   if [[ $skip_ci -gt 0 ]]; then
-    alert "Don't forget to add [skip_ci] to your commit message to avoid running CI/CD"
+    alert "Don't forget to add [skip ci] to your commit message to avoid running CI/CD"
     sleep 1
-    git commit -a && git push
-  else
-    git commit -a && git push
   fi
+  git commit -a && git push
 }
 #####################################################################
 ## HELPER FUNCTIONS FROM https://github.com/pforret/bash-boilerplate/
