@@ -57,16 +57,14 @@ main() {
     commit_and_push
     ;;
 
-  skip | skip-ci | skipci)
-    #USAGE: semver.sh push     : commit and push changed files
-    #USAGE:   also: semver.sh commit
-    commit_and_push skipci
+  auto )
+    #USAGE: semver.sh auto     : commit & push with auto-generated commit message
+    commit_and_push auto
     ;;
 
-  auto )
-    #USAGE: semver.sh push     : commit and push changed files
-    #USAGE:   also: semver.sh commit
-    commit_and_push auto
+  skip | skip-ci | skipci)
+    #USAGE: semver.sh skip-ci     : commit & push with auto-generated commit message with [ckip ci]
+    commit_and_push skipci
     ;;
 
   changes | changelog)
