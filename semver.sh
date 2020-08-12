@@ -314,6 +314,7 @@ set_versions() {
 }
 
 commit_and_push() {
+  set +e
   if [[ $skip_ci -gt 0 ]]; then
     alert "Don't forget to add [skip_ci] to your commit message to avoid running CI/CD"
     sleep 1
