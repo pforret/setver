@@ -21,28 +21,55 @@ uses_npm=0
 
 main(){
     check_requirements
-    [[ -z "$1" ]] && show_usage_and_quit
-    
+    [[ -z "$1" ]] && show_usage_and_quit 0
+
     skip_ci=0
     [[ "$1" == "-s" ]] && skip_ci=1 && shift
     [[ "$1" == "--skip-ci" ]] && skip_ci=1 && shift
 
-    # there is always a composer version, not always a tag version
-    [[ "$1" == "get" ]]   && get_any_version && safe_exit
-    [[ "$1" == "check" ]] && check_versions  && safe_exit
+    case "$1" in
+    -h)
+#USAGE: semver.sh -h : show detailed usage info
+      show_usage_and_quit 1
+      ;;
 
-    [[ "$1" == "set" ]]       && set_versions "$2" && safe_exit
-    [[ "$1" == "new" ]]       && set_versions "$2" && safe_exit
-    [[ "$1" == "bump" ]]      && set_versions "$2" && safe_exit
-    [[ "$1" == "version" ]]   && set_versions "$2" && safe_exit # works like npm version
+    get)
+#USAGE: semver.sh get : get semver version for current repo folder
+      get_any_version
+      ;;
 
-    [[ "$1" == "push" ]]      && commit_and_push && safe_exit
-    [[ "$1" == "commit" ]]    && commit_and_push && safe_exit
+    check)
+#USAGE: semver.sh get : compare version of composer.json, package.json, VERSION.md and git tag
+     check_versions
+      ;;
 
-    [[ "$1" == "changes" ]]   && add_to_changelog "$(get_any_version)" && safe_exit
-    [[ "$1" == "changelog" ]] && add_to_changelog "$(get_any_version)" && safe_exit
+    set|new|bump|version)
+#USAGE: semver.sh new <major/minor/patch> : calc new version and set composer.json, package.json, VERSION.md and git tag
+#USAGE: also: semver.sh set <major/minor/patch> ; semver.sh version <major/minor/patch> ; semver.sh bump <major/minor/patch>
+      set_versions "$2"
+      ;;
 
-    die "Don't understand action [$1]"
+    push|commit|github)
+#USAGE: semver.sh push : commit and push changed files
+#USAGE: also: semver.sh commit ; semver.sh github
+      commit_and_push
+      ;;
+
+    changes|changelog)
+#USAGE: semver.sh changelog : format new CHANGELOG.md chapter
+      add_to_changelog "$(get_any_version)"
+      ;;
+
+    history)
+#USAGE: semver.sh history : show all commits in short format: "2020-08-06 21:18:24 +0200 ; peter@forret.com ; Update CHANGELOG.md"
+      trap - INT TERM EXIT
+      git log --pretty=format:"%ci ; %ce ; %s" | grep -v "semver.sh: set" | more
+      ;;
+
+    *)
+      die "Don't understand action [$1]"
+    esac
+
 }
 
 #####################################################################
@@ -53,11 +80,12 @@ check_requirements(){
     git --version > /dev/null 2>&1 || die "ERROR: git is not installed on this machine"
     git status    > /dev/null 2>&1 || die "ERROR: this folder [] is not a git repository"
     [[ -d .git ]] || die "ERROR: $SCRIPT_NAME should be run from the git repo root"
-    SCRIPT_VERSION=$(get_any_version)
+    [[ -f "$PROG_FOLDER/VERSION.md" ]] && SCRIPT_VERSION=$(cat "$PROG_FOLDER/VERSION.md")
 }
 
 show_usage_and_quit(){
-        cat <<END >&2
+  detailed="${1:=0}"
+  cat <<END >&2
 # $SCRIPT_NAME v$SCRIPT_VERSION - by $SCRIPT_AUTHOR
 # Usage:
     $SCRIPT_NAME get: get current version (from git tag and composer) -- can be used in scripts
@@ -67,6 +95,13 @@ show_usage_and_quit(){
     $SCRIPT_NAME set minor: new minor version e.g. 2.5.17 -> 2.6.0
     $SCRIPT_NAME set patch: new patch version e.g. 2.5.17 -> 2.5.18
 END
+  if ((detailed)) ; then
+    grep "#USAGE:" "$PROG_PATH" \
+    | grep -v "grep " \
+    | grep -v "sed " \
+    | sed 's/#USAGE:/# /' \
+    >&2
+  fi
     safe_exit
 }
 
@@ -258,11 +293,20 @@ set_versions(){
 
     web_url=$(echo "$remote_url" | cut -d: -f2)
     # should be like <username>/<repo>.git
+    git_host=$(echo "$remote_url" | cut -d: -f1)
+    # should be like <username>/<repo>.git
     if [[ -n "$web_url" ]] ; then
       username=$(dirname "$web_url")
       reponame=$(basename "$web_url" .git)
-      web_url="https://github.com/$username/$reponame"
-      success "to create a release, go to $web_url"
+      case "$git_host" in
+        git@github.com)
+          web_url="https://github.com/$username/$reponame"
+          success "to create a release, go to $web_url"
+          ;;
+        git@bitbucket.org)
+          web_url="https://bitbucket.org/$username/$reponame"
+          success "Repo online on $web_url"
+      esac
     fi
 }
 
