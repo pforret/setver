@@ -296,7 +296,7 @@ set_versions() {
     success "set version in .env"
     wait 1
     env_temp="$env_example.tmp"
-    awk -v version="$new_version" -F='{
+    awk -v version="$new_version" -F= '{
       if($1 == "VERSION" || $1 == "APP_VERSION"){ print $1 "=" version}
       else {print}
     }' < "$env_example" > "$env_temp"
