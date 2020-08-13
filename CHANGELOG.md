@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - add content to CHANGELOG.md automatically
  
+## [1.11.0] - 2020-08-13
+### Added/changed
+- add .env.example versioning
+- fix git tag retrieval so that 1.10.0 > 1.9.0
+ 
 ## [1.9.0] - 2020-08-13
 ### Added/changed
 - add semver.sh auto / add semver.sh skip-ci
