@@ -166,7 +166,14 @@ get_version_npm() {
 
 get_version_env() {
   if [[ $uses_env -gt 0 ]]; then
-    awk -F= '$1 == "VERSION" {print} $1 == "APP_VERSION" {print $2}' < "$env_example" | head -1
+        awk -F= '
+      {
+        if($1 == "VERSION" || $1 == "APP_VERSION"){
+          print $2
+          }
+      }
+      ' < "$env_example" | head -1
+
   else
     echo ""
   fi
@@ -300,10 +307,16 @@ set_versions() {
     success "set version in .env"
     wait 1
     env_temp="$env_example.tmp"
-    awk -v version="$new_version" -F= '{
-      if($1 == "VERSION" || $1 == "APP_VERSION"){ print $1 "=" version}
-      else {print}
-    }' < "$env_example" > "$env_temp"
+    awk -F= -v version="$new_version" '
+      {
+        if($1 == "VERSION" || $1 == "APP_VERSION"){
+          print $1 "=" version
+          }
+        else {
+          print
+          }
+      }
+      ' < "$env_example" > "$env_temp"
     if [[ -n $(diff "$env_example" "$env_temp") ]] ; then
       rm "$env_example"
       mv "$env_temp" "$env_example"
