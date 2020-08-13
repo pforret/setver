@@ -1,21 +1,20 @@
 #!/bin/bash
-readonly script_fname=$(basename "$0")
+script_fname=$(basename "$0")
 script_version="?.?.?"
 # will be retrieved later
-readonly this_author="Peter Forret <peter@forret.com>"
-script_folder=$(dirname "$0")
-if [[ -z "$script_folder" ]]; then
+script_author="Peter Forret <peter@forret.com>"
+if [[ -z $(dirname "$0") ]]; then
   # script called without path ; must be in $PATH somewhere
   # shellcheck disable=SC2230
   script_install_path=$(which "$0")
-  script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
-  readonly script_install_folder=$(dirname "$script_install_path")
 else
-  # script called with (full) path
-  readonly script_install_folder=$(cd "$script_folder" && pwd)
-  readonly script_install_path="$script_install_folder/$script_fname"
+  # script called with relative/absolute path
+  script_install_path="$0"
 fi
+script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
+script_install_folder=$(dirname "$script_install_path")
 
+first_version=""
 uses_composer=0
 # shellcheck disable=SC2230
 [[ -f "composer.json" ]] && [[ -n $(which composer) ]] && uses_composer=1
@@ -103,7 +102,7 @@ check_requirements() {
 show_usage_and_quit() {
   detailed="${1:=0}"
   cat <<END >&2
-# $script_fname v$script_version - by $this_author
+# $script_fname v$script_version - by $script_author
 # Usage:
     $script_fname get: get current version (from git tag and composer) -- can be used in scripts
     $script_fname check: compare versions of git tag and composer
@@ -238,18 +237,32 @@ add_to_changelog() {
   fi
 }
 
+show_version(){
+  local version="$1"
+  local location="$2"
+  if [[ -z "$first_version" ]] ; then
+    first_version="$version"
+  else
+    if [[ "$version" == "$first_version" ]] ; then
+      printf "$col_grn$char_succ Version in %14s: %s$col_def\n" "$location" "$version"
+    else
+      printf "$col_red$char_fail Version in %14s: %s <<<$col_def\n" "$location" "$version"
+    fi
+  fi
+}
+
 check_versions() {
   version_tag=$(get_version_tag)
   version_composer=$(get_version_composer)
   version_md=$(get_version_md)
   version_npm=$(get_version_npm)
   version_env=$(get_version_env)
-  alert "Check versions:"
-  [[ -n $version_tag ]]      && alert "Version in git tag       : $version_tag"
-  [[ -n $version_composer ]] && alert "Version in composer.json : $version_composer"
-  [[ -n $version_md ]]       && alert "Version in VERSION.md    : $version_md"
-  [[ -n $version_npm ]]      && alert "Version in package.json  : $version_npm"
-  [[ -n $version_env ]]      && alert "Version in .env          : $version_env"
+  success "$script_fname check versions:"
+  [[ -n $version_tag ]]      && show_version "$version_tag"      "git tag"
+  [[ -n $version_composer ]] && show_version "$version_composer" "composer.json"
+  [[ -n $version_md ]]       && show_version "$version_md "      "VERSION.md"
+  [[ -n $version_npm ]]      && show_version "$version_npm"      "package.json"
+  [[ -n $version_env ]]      && show_version "$version_env"      ".env"
 }
 
 set_versions() {
