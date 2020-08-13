@@ -304,7 +304,7 @@ set_versions() {
     # first change composer.json
     success "set version in composer.json"
     wait 1
-    composer config version "$new_version"
+    composer config version "$new_version" 2> /dev/null
     git add composer.json
     do_git_push=1
   fi
