@@ -137,7 +137,13 @@ get_any_version() {
 }
 
 get_version_tag() {
-  git tag | tail -1 | sed 's/v//'
+  # git tag gives sorted list, which means that 1.10.4 < 1.6.0
+  git tag \
+  | sed 's/v//' \
+  | awk -F. '{printf("%04d.%04d.%04d\n",$1,$2,$3);}' \
+  | sort \
+  | tail -1 \
+  | awk -F. '{printf ("%d.%d.%d",$1 + 0 ,$2 + 0,$3 + 0);}'
 }
 
 get_version_md() {
