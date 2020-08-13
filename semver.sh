@@ -158,7 +158,7 @@ get_version_md() {
 
 get_version_composer() {
   if [[ $uses_composer -gt 0 ]]; then
-    composer config version
+    composer config version 2> /dev/null
   else
     echo ""
   fi

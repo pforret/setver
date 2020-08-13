@@ -1,0 +1,12 @@
+{
+    "name": "pforret/semver",
+    "description": "Semantic Versioning helper script for composer.json, package.json, VERSION.md, .env.example, git tags",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Peter Forret",
+            "email": "peter@forret.com"
+        }
+    ],
+    "require": {}
+}
