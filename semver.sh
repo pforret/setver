@@ -17,9 +17,11 @@ else
 fi
 
 uses_composer=0
-[[ -f "composer.json" ]] && [[ -n $(composer about >/dev/null 2>&1) ]] && uses_composer=1
+# shellcheck disable=SC2230
+[[ -f "composer.json" ]] && [[ -n $(which composer) ]] && uses_composer=1
 uses_npm=0
-[[ -f "package.json" ]]  && [[ -n $(npm version >/dev/null 2>&1) ]]    && uses_npm=1
+# shellcheck disable=SC2230
+[[ -f "package.json" ]]  && [[ -n $(which npm) ]]    && uses_npm=1
 uses_env=0
 env_example=".env.example"
 [[ -f "$env_example" ]]  && uses_env=1
