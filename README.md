@@ -17,6 +17,9 @@
 * `semver.sh check` : compare all versions of git tag, composer, npm, VERSION.md
 
 * `semver.sh push` : short for git commit -a && git push
+* `semver.sh auto` : short for git commit -a && git push with auto-generated commit message
+* `semver.sh skip-ci` : short for git commit -a && git push (with [skip ci] in commit message)
+
 * `semver.sh changes` : add new chapter in CHANGELOG.md for latest version
 
 * `semver.sh set <version>`: set the current version through git tag and composer

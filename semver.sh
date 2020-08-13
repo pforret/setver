@@ -1,31 +1,32 @@
 #!/bin/bash
-readonly SCRIPT_NAME=$(basename "$0")
-SCRIPT_VERSION="?.?.?"
+readonly script_fname=$(basename "$0")
+script_version="?.?.?"
 # will be retrieved later
-readonly SCRIPT_AUTHOR="Peter Forret <peter@forret.com>"
-readonly PROG_DIRNAME=$(dirname "$0")
-if [[ -z "$PROG_DIRNAME" ]]; then
-  # script called without  path specified ; must be in $PATH somewhere
-  readonly PROG_PATH=$(which "$0")
-  readonly PROG_FOLDER=$(dirname "$PROG_PATH")
+readonly this_author="Peter Forret <peter@forret.com>"
+script_folder=$(dirname "$0")
+if [[ -z "$script_folder" ]]; then
+  # script called without path ; must be in $PATH somewhere
+  # shellcheck disable=SC2230
+  script_install_path=$(which "$0")
+  script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
+  readonly script_install_folder=$(dirname "$script_install_path")
 else
-  # script called directly
-  readonly PROG_FOLDER=$(cd "$PROG_DIRNAME" && pwd)
-  readonly PROG_PATH="$PROG_FOLDER/$SCRIPT_NAME"
+  # script called with (full) path
+  readonly script_install_folder=$(cd "$script_folder" && pwd)
+  readonly script_install_path="$script_install_folder/$script_fname"
 fi
 
 uses_composer=0
+[[ -f "composer.json" ]] && [[ -n $(composer about >/dev/null 2>&1) ]] && uses_composer=1
 uses_npm=0
-[[ -f "composer.json" ]] && uses_composer=1
-[[ -f "package.json" ]] && uses_npm=1
+[[ -f "package.json" ]]  && [[ -n $(npm version >/dev/null 2>&1) ]]    && uses_npm=1
+uses_env=0
+env_example=".env.example"
+[[ -f "$env_example" ]]  && uses_env=1
 
 main() {
   check_requirements
   [[ -z "$1" ]] && show_usage_and_quit 0
-
-  skip_ci=0
-  [[ "$1" == "-s" ]] && skip_ci=1 && shift
-  [[ "$1" == "--skip-ci" ]] && skip_ci=1 && shift
 
   case "$1" in
   -h)
@@ -93,24 +94,26 @@ main() {
 check_requirements() {
   git --version >/dev/null 2>&1 || die "ERROR: git is not installed on this machine"
   git status >/dev/null 2>&1 || die "ERROR: this folder [] is not a git repository"
-  [[ -d .git ]] || die "ERROR: $SCRIPT_NAME should be run from the git repo root"
-  [[ -f "$PROG_FOLDER/VERSION.md" ]] && SCRIPT_VERSION=$(cat "$PROG_FOLDER/VERSION.md")
+  [[ -d .git ]] || die "ERROR: $script_fname should be run from the git repo root"
+  [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
 }
 
 show_usage_and_quit() {
   detailed="${1:=0}"
   cat <<END >&2
-# $SCRIPT_NAME v$SCRIPT_VERSION - by $SCRIPT_AUTHOR
+# $script_fname v$script_version - by $this_author
 # Usage:
-    $SCRIPT_NAME get: get current version (from git tag and composer) -- can be used in scripts
-    $SCRIPT_NAME check: compare versions of git tag and composer
-    $SCRIPT_NAME set <version>: set current version through git tag and composer
-    $SCRIPT_NAME set major: new major version e.g. 2.5.17 -> 3.0.0
-    $SCRIPT_NAME set minor: new minor version e.g. 2.5.17 -> 2.6.0
-    $SCRIPT_NAME set patch: new patch version e.g. 2.5.17 -> 2.5.18
+    $script_fname get: get current version (from git tag and composer) -- can be used in scripts
+    $script_fname check: compare versions of git tag and composer
+    $script_fname set <version>: set current version through git tag and composer
+    $script_fname set major: new major version e.g. 2.5.17 -> 3.0.0
+    $script_fname set minor: new minor version e.g. 2.5.17 -> 2.6.0
+    $script_fname set patch: new patch version e.g. 2.5.17 -> 2.5.18
+    $script_fname history: show last commits
+    $script_fname changelog: add chapter with latest changes to CHANGELOG.md
 END
   if ((detailed)); then
-    grep "#USAGE:" "$PROG_PATH" |
+    grep "#USAGE:" "$script_install_path" |
       grep -v "grep " |
       grep -v "sed " |
       sed 's/#USAGE:/# /' \
@@ -156,6 +159,14 @@ get_version_composer() {
 get_version_npm() {
   if [[ $uses_npm -gt 0 ]]; then
     npm version | grep semver | cut -d\' -f2
+  else
+    echo ""
+  fi
+}
+
+get_version_env() {
+  if [[ $uses_env -gt 0 ]]; then
+    awk -F= '$1 == "VERSION" {print} $1 == "APP_VERSION" {print $2}' < "$env_example" | head -1
   else
     echo ""
   fi
@@ -211,16 +222,19 @@ add_to_changelog() {
     fi
   fi
 }
+
 check_versions() {
   version_tag=$(get_version_tag)
   version_composer=$(get_version_composer)
   version_md=$(get_version_md)
   version_npm=$(get_version_npm)
+  version_env=$(get_version_env)
   alert "Check versions:"
-  [[ -n $version_tag ]] && alert "Version in git tag       : $version_tag"
+  [[ -n $version_tag ]]      && alert "Version in git tag       : $version_tag"
   [[ -n $version_composer ]] && alert "Version in composer.json : $version_composer"
-  [[ -n $version_md ]] && alert "Version in VERSION.md    : $version_md"
-  [[ -n $version_npm ]] && alert "Version in package.json  : $version_npm"
+  [[ -n $version_md ]]       && alert "Version in VERSION.md    : $version_md"
+  [[ -n $version_npm ]]      && alert "Version in package.json  : $version_npm"
+  [[ -n $version_env ]]      && alert "Version in .env          : $version_env"
 }
 
 set_versions() {
@@ -274,6 +288,26 @@ set_versions() {
     composer config version "$new_version"
     git add composer.json
     do_git_push=1
+  fi
+
+  ### .env
+  if [[ $uses_env -gt 0 ]]; then
+    # for Ruby/PHP/bash/...
+    success "set version in .env"
+    wait 1
+    env_temp="$env_example.tmp"
+    awk -v version="$new_version" -F='{
+      if($1 == "VERSION" || $1 == "APP_VERSION"){ print $1 "=" version}
+      else {print}
+    }' < "$env_example" > "$env_temp"
+    if [[ -n $(diff "$env_example" "$env_temp") ]] ; then
+      rm "$env_example"
+      mv "$env_temp" "$env_example"
+      git add "$env_example"
+      do_git_push=1
+    else
+      rm "$env_temp"
+    fi
   fi
 
   ### VERSION.md
@@ -342,13 +376,12 @@ commit_and_push() {
     git commit -a -m "$default_message" && git push
     ;;
 
+  *)
+    # interactive commit
+    git commit -a && git push
+
   esac
 
-  if [[ $skip_ci -gt 0 ]]; then
-    alert "Don't forget to add [skip ci] to your commit message to avoid running CI/CD"
-    sleep 1
-  fi
-  git commit -a && git push
 }
 #####################################################################
 ## HELPER FUNCTIONS FROM https://github.com/pforret/bash-boilerplate/
@@ -396,7 +429,7 @@ die() {
 error_prefix="${col_red}>${col_def}"
 trap "die \"ERROR \$? after \$SECONDS seconds \n\
 \${error_prefix} last command : '\$BASH_COMMAND' \" \
-\$(< \$PROG_PATH awk -v lineno=\$LINENO \
+\$(< \$script_install_path awk -v lineno=\$LINENO \
 'NR == lineno {print \" from line \" lineno \" : \" \$0}')" INT TERM EXIT
 
 safe_exit() {
