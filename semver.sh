@@ -325,7 +325,7 @@ set_versions() {
   ### .env
   if [[ $uses_env -gt 0 ]]; then
     # for Ruby/PHP/bash/...
-    success "set version in .env"
+    success "set version in $env_example"
     wait 1
     env_temp="$env_example.tmp"
     awk -F= -v version="$new_version" '

@@ -37,6 +37,22 @@ or with [basher](https://github.com/basherpm/basher)
 
 `basher install pforret/semver`
 
+## Example:
+
+    > semver.sh new patch   
+    ✔  version 1.12.0 -> 1.12.1
+    ✔  set version in package.json
+    v1.12.1
+    ✔  set version in composer.json
+    ✔  set version in .env
+    ✔  set version in VERSION.md
+    ✔  commit and push changed files
+    [master b13f14a] semver.sh: set version to 1.12.1
+    To github.com:pforret/semver.git
+    ✔  push tags to git@github.com:pforret/semver.git
+     * [new tag]         v1.12.1 -> v1.12.1
+    ✔  to create a release, go to https://github.com/pforret/semver
+
 ## References
 * https://semver.org/
 
