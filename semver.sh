@@ -250,19 +250,23 @@ set_versions() {
   semver_minor=$(echo "$current_semver" | cut -d. -f2)
   semver_patch=$(echo "$current_semver" | cut -d. -f3)
   case "$new_version" in
-  "major")
+  major|MAJOR)
     new_version="$((semver_major + 1)).0.0"
     success "version $current_semver -> $new_version"
     ;;
-  "minor")
+  minor)
     new_version="$semver_major.$((semver_minor + 1)).0"
     success "version $current_semver -> $new_version"
     ;;
-  *)
+  patch|bug|bugfix)
     # supports auto|patch|fix
     new_version="$semver_major.$semver_minor.$((semver_patch + 1))"
     success "version $current_semver -> $new_version"
     ;;
+
+  *)
+    new_version="$1"
+    success "version $current_semver -> $new_version"
   esac
   # TODO: fully support  [<newversion> | major | minor | patch | premajor | preminor | prepatch | prerelease [--preid=<prerelease-id>] | from-git]
 
