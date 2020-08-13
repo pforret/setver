@@ -5,6 +5,7 @@
 
 # semver.sh
 
+![semver](semver.sh.png)
 * Semantic Versioning helper script, to get and set semver version numbers
 * handles versioning for composer.json: for PHP, composer packages
 * handles versioning for package.json: for node, npm
