@@ -33,8 +33,10 @@ env_example=".env.example"
 [[ -f "$env_example" ]]  && uses_env=1
 
 verbose=0
-while getopts v option ; do
+check_in_root=1
+while getopts rv option ; do
   case $option in
+  r)  check_in_root=0 ;;
   v)  verbose=1 ;;
   *)  echo "Unknown option -$option"
   esac
@@ -110,8 +112,15 @@ main() {
 
 check_requirements() {
   git --version >/dev/null 2>&1 || die "ERROR: git is not installed on this machine"
+  log "git is installed"
   git status >/dev/null 2>&1 || die "ERROR: this folder [] is not a git repository"
-  # [[ -d .git ]] || die "ERROR: $script_fname should be run from the git repo root"
+  log "git repo found"
+  log "check_in_root = $check_in_root"
+  if [[ $check_in_root -gt 0 ]] ; then
+    [[ -d .git ]] || die "ERROR: $script_fname should be run from the git repo root"
+    log "in root of git repo"
+  fi
+
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
 }
 
@@ -174,7 +183,7 @@ get_version_md() {
     version=$(cat VERSION.md)
     echo "$version"
   else
-    log "No VERSION.md in this folder"
+    log "No 'VERSION.md' in this folder"
     echo ""
   fi
 }
@@ -220,7 +229,7 @@ get_version_npm() {
     fi
   else
     # no package.json in this folder
-    log "No package.json in this folder"
+    log "No 'package.json' in this folder"
     echo ""
   fi
 }
