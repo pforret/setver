@@ -8,5 +8,6 @@
             "email": "peter@forret.com"
         }
     ],
-    "require": {}
+    "require": {},
+    "version": "1.12.4"
 }
