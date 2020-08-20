@@ -208,7 +208,7 @@ get_version_npm() {
   if [[ $uses_npm -gt 0 ]] ; then
     #package.json exists
     if grep -q '"version"' package.json ; then
-      if npm version 2>/dev/null ; then
+      if npm version >/dev/null 2>&1; then
         npm version 2>/dev/null | grep semver | cut -d\' -f2
       else
         log "npm not installed"
