@@ -382,6 +382,7 @@ set_versions() {
     # for PHP repos
     # first change composer.json
     success "set version in composer.json"
+    set -ex
     wait 1
     composer config version "$new_version" 2> /dev/null
     git add composer.json
