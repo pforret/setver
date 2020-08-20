@@ -1,6 +1,6 @@
 {
   "name": "semver",
-  "version": "1.12.4",
+  "version": "1.12.5",
   "description": "Semantic Versioning helper script for composer.json, package.json, git tag and VERSION.md -- works with Github/Bitbucket/Packagist",
   "main": "semver.sh",
   "scripts": {
