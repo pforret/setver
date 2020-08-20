@@ -9,6 +9,7 @@
 * Semantic Versioning helper script, to get and set semver version numbers
 * handles versioning for composer.json: for PHP, composer packages
 * handles versioning for package.json: for node, npm
+* handles versioning for .env.example: for PHP, Python, Ruby
 * handles versioning for VERSION.md: for bash
 * handles versioning by 'git tag': for Github, Bitbucket
 

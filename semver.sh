@@ -10,20 +10,36 @@ if [[ -z $(dirname "$0") ]]; then
 else
   # script called with relative/absolute path
   script_install_path="$0"
+  script_install_folder=$(dirname "$script_install_path")
+  # shellcheck disable=SC2164
+  script_install_folder=$(cd "$script_install_folder" ; pwd)
+  script_install_path="$script_install_folder/$script_fname"
 fi
-script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
+
+[[ -n $(readlink "$script_install_path") ]] && script_install_path=$(readlink "$script_install_path")
+# when script was installed with e.g. basher
 script_install_folder=$(dirname "$script_install_path")
 
-first_version=""
 uses_composer=0
 # shellcheck disable=SC2230
 [[ -f "composer.json" ]] && [[ -n $(which composer) ]] && uses_composer=1
+
 uses_npm=0
 # shellcheck disable=SC2230
 [[ -f "package.json" ]]  && [[ -n $(which npm) ]]    && uses_npm=1
+
 uses_env=0
 env_example=".env.example"
 [[ -f "$env_example" ]]  && uses_env=1
+
+verbose=0
+while getopts v option ; do
+  case $option in
+  v)  verbose=1 ;;
+  *)  echo "Unknown option -$option"
+  esac
+done
+shift $((OPTIND - 1))
 
 main() {
   check_requirements
@@ -95,7 +111,7 @@ main() {
 check_requirements() {
   git --version >/dev/null 2>&1 || die "ERROR: git is not installed on this machine"
   git status >/dev/null 2>&1 || die "ERROR: this folder [] is not a git repository"
-  [[ -d .git ]] || die "ERROR: $script_fname should be run from the git repo root"
+  # [[ -d .git ]] || die "ERROR: $script_fname should be run from the git repo root"
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
 }
 
@@ -125,48 +141,86 @@ END
 
 get_any_version() {
   local version="0.0.0"
+  if [[ -n $(get_version_tag) ]]; then
+    version=$(get_version_tag)
+  fi
   if [[ $uses_composer -gt 0 ]]; then
-    version=$(composer config version)
+    version=$(composer config version 2>/dev/null)
   fi
   if [[ $uses_npm -gt 0 ]]; then
     version=$(get_version_npm)
-  fi
-  if [[ -n $(get_version_tag) ]]; then
-    version=$(get_version_tag)
   fi
   echo "$version"
 }
 
 get_version_tag() {
   # git tag gives sorted list, which means that 1.10.4 < 1.6.0
-  git tag \
-  | sed 's/v//' \
-  | awk -F. '{printf("%04d.%04d.%04d\n",$1,$2,$3);}' \
-  | sort \
-  | tail -1 \
-  | awk -F. '{printf ("%d.%d.%d",$1 + 0 ,$2 + 0,$3 + 0);}'
+  if [[ -n $(git tag) ]] ; then
+    git tag \
+    | sed 's/v//' \
+    | awk -F. '{printf("%04d.%04d.%04d\n",$1,$2,$3);}' \
+    | sort \
+    | tail -1 \
+    | awk -F. '{printf ("%d.%d.%d",$1 + 0 ,$2 + 0,$3 + 0);}'
+  else
+    log "No git tag yet in this repo"
+    echo ""
+  fi
 }
 
 get_version_md() {
+  local version
   if [[ -f VERSION.md ]]; then
-    cat VERSION.md
+    version=$(cat VERSION.md)
+    echo "$version"
   else
+    log "No VERSION.md in this folder"
     echo ""
   fi
 }
 
 get_version_composer() {
+  local version
   if [[ $uses_composer -gt 0 ]]; then
-    composer config version 2> /dev/null
+    # composer.json exists
+    if grep -q '"version"' composer.json ; then
+      # shellcheck disable=SC2230
+      if [[ -n $(which composer) ]] ; then
+        version=$(composer config version 2>&1 /dev/null)
+      else
+        # composer not installed on this machine
+        log "Composer not installed"
+        echo ""
+      fi
+    else
+      # no "version" field in composer.json
+      log "No 'version' field in composer.json"
+      echo ""
+    fi
   else
+    # no composer.json in this folder
+    log "No 'composer.json' in this folder"
     echo ""
   fi
 }
 
 get_version_npm() {
-  if [[ $uses_npm -gt 0 ]]; then
-    npm version | grep semver | cut -d\' -f2
+  if [[ $uses_npm -gt 0 ]] ; then
+    #package.json exists
+    if grep -q '"version"' package.json ; then
+      if npm version 2>/dev/null ; then
+        npm version 2>/dev/null | grep semver | cut -d\' -f2
+      else
+        log "npm not installed"
+      fi
+    else
+      # no "version" field in package.json
+      log "No 'version' field in package.json"
+      echo ""
+    fi
   else
+    # no package.json in this folder
+    log "No package.json in this folder"
     echo ""
   fi
 }
@@ -182,6 +236,7 @@ get_version_env() {
       ' < "$env_example" | head -1
 
   else
+    log "no $env_example in this folder"
     echo ""
   fi
 }
@@ -242,11 +297,12 @@ show_version(){
   local location="$2"
   if [[ -z "$first_version" ]] ; then
     first_version="$version"
+    printf "$col_grn$char_succ Version in %14s: %s$col_def\n" "$location" "$version"
   else
     if [[ "$version" == "$first_version" ]] ; then
       printf "$col_grn$char_succ Version in %14s: %s$col_def\n" "$location" "$version"
     else
-      printf "$col_red$char_fail Version in %14s: %s <<<$col_def\n" "$location" "$version"
+      printf "$col_red$char_fail Version in %14s: [%s] != [$first_version]$col_def\n" "$location" "$version"
     fi
   fi
 }
@@ -257,12 +313,13 @@ check_versions() {
   version_md=$(get_version_md)
   version_npm=$(get_version_npm)
   version_env=$(get_version_env)
+  first_version=""
   success "$script_fname check versions:"
   [[ -n $version_tag ]]      && show_version "$version_tag"      "git tag"
   [[ -n $version_composer ]] && show_version "$version_composer" "composer.json"
-  [[ -n $version_md ]]       && show_version "$version_md "      "VERSION.md"
+  [[ -n $version_md ]]       && show_version "$version_md"       "VERSION.md"
   [[ -n $version_npm ]]      && show_version "$version_npm"      "package.json"
-  [[ -n $version_env ]]      && show_version "$version_env"      ".env"
+  [[ -n $version_env ]]      && show_version "$version_env"      ".env.example"
 }
 
 set_versions() {
@@ -444,20 +501,21 @@ fi
 if [[ $supports_unicode -gt 0 ]]; then
   readonly char_succ="✔"
   readonly char_fail="✖"
-  readonly char_alrt="➨"
+  readonly char_warn="➨"
   readonly char_wait="…"
 else
   # no supports_unicode chars if not supported
   readonly char_succ="OK "
   readonly char_fail="!! "
-  readonly char_alrt="?? "
+  readonly char_warn="?? "
   readonly char_wait="..."
 fi
 
 out() { printf '%b\n' "$*"; }
+log() { [[ $verbose -gt 0 ]] && printf "  ${col_ylw}%b${col_def}\n" "$*" >&2; }
 wait() { printf '%b\r' "$char_wait" && sleep "$1"; }
 success() { out "${col_grn}${char_succ}${col_def}  $*"; }
-alert() { out "${col_ylw}${char_alrt}${col_def}: $*" >&2; }
+alert() { out "${col_ylw}${char_warn}${col_def}: $*" >&2; }
 die() {
   tput bel
   out "${col_red}${char_fail} $PROGIDEN${col_def}: $*" >&2
