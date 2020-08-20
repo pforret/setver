@@ -112,15 +112,10 @@ main() {
 
 check_requirements() {
   git --version >/dev/null 2>&1 || die "ERROR: git is not installed on this machine"
-  log "git is installed"
   git status >/dev/null 2>&1 || die "ERROR: this folder [] is not a git repository"
-  log "git repo found"
-  log "check_in_root = $check_in_root"
   if [[ $check_in_root -gt 0 ]] ; then
     [[ -d .git ]] || die "ERROR: $script_fname should be run from the git repo root"
-    log "in root of git repo"
   fi
-
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
 }
 
@@ -196,6 +191,7 @@ get_version_composer() {
       # shellcheck disable=SC2230
       if [[ -n $(which composer) ]] ; then
         version=$(composer config version 2>&1 /dev/null)
+        echo "$version"
       else
         # composer not installed on this machine
         log "Composer not installed"
@@ -382,7 +378,7 @@ set_versions() {
     # for PHP repos
     # first change composer.json
     success "set version in composer.json"
-    set -ex
+
     wait 1
     composer config version "$new_version" 2> /dev/null
     git add composer.json
