@@ -34,10 +34,12 @@ env_example=".env.example"
 
 verbose=0
 check_in_root=1
-while getopts rv option ; do
+usage=0
+while getopts rvh option ; do
   case $option in
   r)  check_in_root=0 ;;
   v)  verbose=1 ;;
+  h)  usage=1 ;;
   *)  echo "Unknown option -$option"
   esac
 done
@@ -45,7 +47,7 @@ shift $((OPTIND - 1))
 
 main() {
   check_requirements
-  [[ -z "$1" ]] && show_usage_and_quit 0
+  [[ -z "$1" ]] && show_usage_and_quit $usage
 
   case "$1" in
   -h)
@@ -59,7 +61,7 @@ main() {
     ;;
 
   check)
-    #USAGE: semver.sh get      : compare version of composer.json, package.json, VERSION.md and git tag
+    #USAGE: semver.sh check    : compare version of composer.json, package.json, VERSION.md and git tag
     check_versions
     ;;
 
@@ -67,13 +69,15 @@ main() {
     #USAGE: semver.sh new major: set new MAJOR version (e.g. 2.4.7 -> 3.0.0) -- new functionality, NOT backwards compatible
     #USAGE: semver.sh new minor: set new MINOR version (e.g. 2.4.7 -> 2.5.0) -- new functionality, backwards compatible
     #USAGE: semver.sh new patch: set new PATCH version (e.g. 2.4.7 -> 2.4.8) -- bugfix, refactor, no new functionality
-    #USAGE:   also: semver.sh set <major/minor/patch> ; semver.sh version <major/minor/patch> ; semver.sh bump <major/minor/patch>
+    #USAGE: = semver.sh set <major/minor/patch>
+    #USAGE: = semver.sh version <major/minor/patch>
+    #USAGE: = semver.sh bump <major/minor/patch>
     set_versions "$2"
     ;;
 
   push | commit | github)
     #USAGE: semver.sh push     : commit and push changed files
-    #USAGE:   also: semver.sh commit
+    #USAGE: = semver.sh commit
     commit_and_push
     ;;
 
@@ -83,17 +87,17 @@ main() {
     ;;
 
   skip | skip-ci | skipci)
-    #USAGE: semver.sh skip-ci     : commit & push with auto-generated commit message with [ckip ci]
+    #USAGE: semver.sh skip-ci  : commit & push with auto-generated commit message with [skip ci]
     commit_and_push skipci
     ;;
 
   changes | changelog)
-    #USAGE: semver.sh changelog : format new CHANGELOG.md chapter
+    #USAGE: semver.sh changelog: format new CHANGELOG.md chapter
     add_to_changelog "$(get_any_version)"
     ;;
 
   history)
-    #USAGE: semver.sh history : show all commits in short format: "2020-08-06 21:18:24 +0200 ; peter@forret.com ; Update CHANGELOG.md"
+    #USAGE: semver.sh history  : show all commits in short format: "YYYY-MM-DD HH:MM:SS +TTTT ; <author> ; <message>"
     trap - INT TERM EXIT
     git log --pretty=format:"%ci ; %ce ; %s" | grep -v "semver.sh: set" | more
     ;;
@@ -465,7 +469,23 @@ commit_and_push() {
 
   mode=${1:-}
 
-  default_message="$(git diff --compact-summary  | tail -1): $(git diff --compact-summary  | awk -F\| '/\|/ {print $1 "," }' | xargs)"
+  #default_message="$(git diff --shortstat  | tail -1): $(git diff --compact-summary  | awk -F\| '/\|/ {print $1 "," }' | xargs)"
+  default_message="$(git status --short | awk '
+  BEGIN {add=0; mod=0; del=0; ren=0}
+  /^A/ {add++}
+  /^R/ {ren++}
+  /^ M/ {mod++}
+  /^ D/ {del++}
+  END {
+    if(add>0){print add " added, ";}
+    if(del>0){print del " deleted, ";}
+    if(ren>0){print ren " renamed, ";}
+    if(mod>0){print mod " modified, ";}
+    print "\n";
+    }
+  ')"
+  log "Commit message = [$default_message]"
+
   case "$mode" in
   skip-ci|skipci)
     success "Commit: $default_message [skip ci]"
