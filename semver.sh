@@ -81,6 +81,10 @@ main() {
     commit_and_push
     ;;
 
+  message)
+    def_commit_message
+    ;;
+
   auto )
     #USAGE: semver.sh auto     : commit & push with auto-generated commit message
     commit_and_push auto
@@ -463,6 +467,29 @@ set_versions() {
   fi
 }
 
+def_commit_message(){
+  git status --short \
+  | sed 's/^ //' \
+  | awk '
+  function basename(file) {
+    sub(".*/", "", file)
+    return file
+  }
+  BEGIN {add=""; mod=""; del=""; ren=""}
+  /^A / {add=add " " basename($2);}
+  /^R / {ren=ren " " basename($2);}
+  /^M / {mod=mod " " basename($2);}
+  /^D / {del=del " " basename($2);}
+  END {
+    if(length(add)>0){printf "ADD:" add ", "}
+    if(length(del)>0){printf "DEL:" del ", "}
+    if(length(ren)>0){printf "MOV:" ren ", "}
+    if(length(mod)>0){printf "MOD:" mod}
+    print "\n";
+    }
+  '
+}
+
 commit_and_push() {
   set +e
   trap - INT TERM EXIT
@@ -470,20 +497,7 @@ commit_and_push() {
   mode=${1:-}
 
   #default_message="$(git diff --shortstat  | tail -1): $(git diff --compact-summary  | awk -F\| '/\|/ {print $1 "," }' | xargs)"
-  default_message="$(git status --short | awk '
-  BEGIN {add=0; mod=0; del=0; ren=0}
-  /^A/ {add++}
-  /^R/ {ren++}
-  /^ M/ {mod++}
-  /^ D/ {del++}
-  END {
-    if(add>0){print add " added, ";}
-    if(del>0){print del " deleted, ";}
-    if(ren>0){print ren " renamed, ";}
-    if(mod>0){print mod " modified, ";}
-    print "\n";
-    }
-  ')"
+  default_message="$(def_commit_message)"
   log "Commit message = [$default_message]"
 
   case "$mode" in
