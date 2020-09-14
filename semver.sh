@@ -198,7 +198,7 @@ get_version_composer() {
     if grep -q '"version"' composer.json ; then
       # shellcheck disable=SC2230
       if [[ -n $(which composer) ]] ; then
-        version=$(composer config version 2>&1 /dev/null)
+        version=$(composer config version 2> /dev/null)
         echo "$version"
       else
         # composer not installed on this machine
