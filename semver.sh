@@ -153,14 +153,25 @@ END
 
 get_any_version() {
   local version="0.0.0"
+  if [[ -f VERSION.md ]]; then
+    log "Version from VERSION.md"
+    get_version_md
+    return 0
+  fi
   if [[ -n $(get_version_tag) ]]; then
-    version=$(get_version_tag)
+    log "Version from git tag"
+    get_version_tag
+    return 0
   fi
   if [[ $uses_composer -gt 0 ]]; then
-    version=$(composer config version 2>/dev/null)
+    log "Version from composer"
+    get_version_composer
+    return 0
   fi
   if [[ $uses_npm -gt 0 ]]; then
-    version=$(get_version_npm)
+    log "Version from npm"
+    get_version_npm
+    return
   fi
   echo "$version"
 }
@@ -222,7 +233,10 @@ get_version_npm() {
     #package.json exists
     if grep -q '"version"' package.json ; then
       if npm version >/dev/null 2>&1; then
-        npm version 2>/dev/null | grep semver | cut -d\' -f2
+        npm ls 2>/dev/null \
+        | head -1 \
+        | cut -d' ' -f1 \
+        | cut -d@ -f2
       else
         log "npm not installed"
       fi
@@ -321,17 +335,17 @@ show_version(){
 }
 
 check_versions() {
-  version_tag=$(get_version_tag)
-  version_composer=$(get_version_composer)
-  version_md=$(get_version_md)
-  version_npm=$(get_version_npm)
-  version_env=$(get_version_env)
   first_version=""
   success "$script_fname check versions:"
+  version_tag=$(get_version_tag)
   [[ -n $version_tag ]]      && show_version "$version_tag"      "git tag"
+  version_composer=$(get_version_composer)
   [[ -n $version_composer ]] && show_version "$version_composer" "composer.json"
+  version_md=$(get_version_md)
   [[ -n $version_md ]]       && show_version "$version_md"       "VERSION.md"
+  version_npm=$(get_version_npm)
   [[ -n $version_npm ]]      && show_version "$version_npm"      "package.json"
+  version_env=$(get_version_env)
   [[ -n $version_env ]]      && show_version "$version_env"      ".env.example"
 }
 
