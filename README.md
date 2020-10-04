@@ -2,6 +2,7 @@
 ![Shellcheck CI](https://github.com/pforret/semver/workflows/Shellcheck%20CI/badge.svg)
 ![Bash CI](https://github.com/pforret/semver/workflows/Bash%20CI/badge.svg)
 ![GitHub](https://img.shields.io/github/license/pforret/semver)
+[![basher install](https://img.shields.io/badge/basher-install-white?logo=gnu-bash&style=flat)](https://basher.gitparade.com/package/)
 
 # semver.sh
 ![semver](semver.sh.png)
