@@ -2,3 +2,5 @@
 .CHANGELOG*
 
 /vendor/
+.tmp
+log
