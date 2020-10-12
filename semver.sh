@@ -51,33 +51,33 @@ main() {
 
   case "$1" in
   -h)
-    #USAGE: semver.sh -h       : show detailed usage info
+    #USAGE: setver -h       : show detailed usage info
     show_usage_and_quit 1
     ;;
 
   get)
-    #USAGE: semver.sh get      : get semver version for current repo folder
+    #USAGE: setver get      : get semver version for current repo folder
     get_any_version
     ;;
 
   check)
-    #USAGE: semver.sh check    : compare version of composer.json, package.json, VERSION.md and git tag
+    #USAGE: setver check    : compare version of composer.json, package.json, VERSION.md and git tag
     check_versions
     ;;
 
   set | new | bump | version)
-    #USAGE: semver.sh new major: set new MAJOR version (e.g. 2.4.7 -> 3.0.0) -- new functionality, NOT backwards compatible
-    #USAGE: semver.sh new minor: set new MINOR version (e.g. 2.4.7 -> 2.5.0) -- new functionality, backwards compatible
-    #USAGE: semver.sh new patch: set new PATCH version (e.g. 2.4.7 -> 2.4.8) -- bugfix, refactor, no new functionality
-    #USAGE: = semver.sh set <major/minor/patch>
-    #USAGE: = semver.sh version <major/minor/patch>
-    #USAGE: = semver.sh bump <major/minor/patch>
+    #USAGE: setver new major: set new MAJOR version (e.g. 2.4.7 -> 3.0.0) -- new functionality, NOT backwards compatible
+    #USAGE: setver new minor: set new MINOR version (e.g. 2.4.7 -> 2.5.0) -- new functionality, backwards compatible
+    #USAGE: setver new patch: set new PATCH version (e.g. 2.4.7 -> 2.4.8) -- bugfix, refactor, no new functionality
+    #USAGE: = setver set <major/minor/patch>
+    #USAGE: = setver version <major/minor/patch>
+    #USAGE: = setver bump <major/minor/patch>
     set_versions "$2"
     ;;
 
   push | commit | github)
-    #USAGE: semver.sh push     : commit and push changed files
-    #USAGE: = semver.sh commit
+    #USAGE: setver push     : commit and push changed files
+    #USAGE: = setver commit
     commit_and_push
     ;;
 
@@ -86,24 +86,24 @@ main() {
     ;;
 
   auto )
-    #USAGE: semver.sh auto     : commit & push with auto-generated commit message
+    #USAGE: setver auto     : commit & push with auto-generated commit message
     commit_and_push auto
     ;;
 
   skip | skip-ci | skipci)
-    #USAGE: semver.sh skip-ci  : commit & push with auto-generated commit message with [skip ci]
+    #USAGE: setver skip-ci  : commit & push with auto-generated commit message with [skip ci]
     commit_and_push skipci
     ;;
 
   changes | changelog)
-    #USAGE: semver.sh changelog: format new CHANGELOG.md chapter
+    #USAGE: setver changelog: format new CHANGELOG.md chapter
     add_to_changelog "$(get_any_version)"
     ;;
 
   history)
-    #USAGE: semver.sh history  : show all commits in short format: "YYYY-MM-DD HH:MM:SS +TTTT ; <author> ; <message>"
+    #USAGE: setver history  : show all commits in short format: "YYYY-MM-DD HH:MM:SS +TTTT ; <author> ; <message>"
     trap - INT TERM EXIT
-    git log --pretty=format:"%ci ; %ce ; %s" | grep -v "semver.sh: set" | more
+    git log --pretty=format:"%ci ; %ce ; %s" | grep -v "setver: set" | more
     ;;
 
   *)
@@ -446,7 +446,7 @@ set_versions() {
   if [[ $do_git_push -gt 0 ]]; then
     success "commit and push changed files"
     wait 1
-    (git commit -m "semver.sh: set version to $new_version" -m "[skip ci]" && git push) 2>&1 | grep 'semver'
+    (git commit -m "setver: set version to $new_version" -m "[skip ci]" && git push) 2>&1 | grep 'semver'
   fi
 
   # now create new version tag

@@ -1,14 +1,14 @@
 {
-  "name": "semver",
+  "name": "setver",
   "version": "1.12.10",
   "description": "Semantic Versioning helper script for composer.json, package.json, git tag and VERSION.md -- works with Github/Bitbucket/Packagist",
-  "main": "semver.sh",
+  "main": "setver.sh",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pforret/semver.git"
+    "url": "git+https://github.com/pforret/setver.git"
   },
   "keywords": [
     "semver",
@@ -22,7 +22,7 @@
   "author": "Peter Forret",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/pforret/semver/issues"
+    "url": "https://github.com/pforret/setver/issues"
   },
-  "homepage": "https://github.com/pforret/semver#readme"
+  "homepage": "https://github.com/pforret/setver#readme"
 }
