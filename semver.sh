@@ -103,7 +103,10 @@ main() {
   history)
     #USAGE: setver history  : show all commits in short format: "YYYY-MM-DD HH:MM:SS +TTTT ; <author> ; <message>"
     trap - INT TERM EXIT
-    git log --pretty=format:"%ci ; %ce ; %s" | grep -v "setver: set" | more
+    git log --pretty=format:"%ci ; %ce ; %s" \
+    | grep -v "semver.sh: set" \
+    | grep -v "setver: set" \
+    | more
     ;;
 
   *)
@@ -453,7 +456,7 @@ set_versions() {
   if [[ $do_git_push -gt 0 ]]; then
     success "commit and push changed files"
     wait 1
-    (git commit -m "setver: set version to $new_version" -m "[skip ci]" && git push) 2>&1 | grep 'semver'
+    (git commit -m "setver: set version to $new_version" -m "[skip ci]" && push_if_possible) 2>&1 | grep 'setver'
   fi
 
   # now create new version tag
@@ -464,9 +467,11 @@ set_versions() {
   fi
 
   # also push tags to github/bitbucket
-  success "push tags to $remote_url"
-  wait 1
-  git push --tags 2>&1 | grep 'new tag'
+  if [[ -n "$remote_url" ]] ; then
+    success "push tags to $remote_url"
+    wait 1
+    git push --tags 2>&1 | grep 'new tag'
+  fi
 
   web_url=$(echo "$remote_url" | cut -d: -f2)
   # should be like <username>/<repo>.git
