@@ -502,10 +502,10 @@ def_commit_message(){
     return file
   }
   BEGIN {add=""; mod=""; del=""; ren=""}
-  /^A / {add=add " " basename($2);}
-  /^R / {ren=ren " " basename($2);}
-  /^M / {mod=mod " " basename($2);}
-  /^D / {del=del " " basename($2);}
+  /^A/ {add=add " " basename($2);}
+  /^R/ {ren=ren " " basename($2);}
+  /^M/ {mod=mod " " basename($2);}
+  /^D/ {del=del " " basename($2);}
   END {
     if(length(add)>0){printf "ADD:" add ", "}
     if(length(del)>0){printf "DEL:" del ", "}
