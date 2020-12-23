@@ -544,7 +544,7 @@ push_if_possible(){
   local check_remote=""
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]] ; then
-    announce "push to remote [$check_remote]"
+    log "push to remote [$check_remote]"
     git push
   else
     log "No remote set - skip git push"
