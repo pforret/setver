@@ -132,14 +132,21 @@ show_usage_and_quit() {
   cat <<END >&2
 # $script_fname v$script_version - by $script_author
 # Usage:
-    $script_fname get: get current version (from git tag and composer) -- can be used in scripts
-    $script_fname check: compare versions of git tag and composer
-    $script_fname set <version>: set current version through git tag and composer
-    $script_fname set major: new major version e.g. 2.5.17 -> 3.0.0
-    $script_fname set minor: new minor version e.g. 2.5.17 -> 2.6.0
-    $script_fname set patch: new patch version e.g. 2.5.17 -> 2.5.18
-    $script_fname history: show last commits
-    $script_fname changelog: add chapter with latest changes to CHANGELOG.md
+    $script_fname [-h] [-v] [-s] [get/check/push/auto/skip/set/new/history/changelog] [version]
+    -h: extended help
+    -v: verbose mode (more output to stderr)
+    -s: add [skip_ci] flag to
+    get      : get current version (from git tag and composer) -- can be used in scripts
+    check    : compare versions of git tag and composer
+    push     : do a git commit -a and and git push, edit commit message manually
+    auto     : like 'push', with automatic commit message
+    skip     : like 'auto', and add [skip_ci] to commit message
+    set <version>: set current version through git tag and composer
+    new major: new major version e.g. 2.5.17 -> 3.0.0
+    new minor: new minor version e.g. 2.5.17 -> 2.6.0
+    new patch: new patch version e.g. 2.5.17 -> 2.5.18
+    history  : show last commits
+    changelog: add chapter with latest changes to CHANGELOG.md
 END
   if ((detailed)); then
     grep "#USAGE:" "$script_install_path" |
@@ -517,20 +524,31 @@ commit_and_push() {
   case "$mode" in
   skip-ci|skipci)
     success "Commit: $default_message [skip ci]"
-    git commit -a -m "$default_message" -m "[skip ci]" && git push
+    git commit -a -m "$default_message" -m "[skip ci]" && push_if_possible
     ;;
 
   auto | fast)
     success "Commit: $default_message"
-    git commit -a -m "$default_message" && git push
+    git commit -a -m "$default_message" && push_if_possible
     ;;
 
   *)
     # interactive commit
-    git commit -a && git push
+    git commit -a && push_if_possible
 
   esac
 
+}
+
+push_if_possible(){
+  local check_remote=""
+  check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
+  if [[ -n "$check_remote" ]] ; then
+    announce "push to remote [$check_remote]"
+    git push
+  else
+    log "No remote set - skip git push"
+  fi
 }
 #####################################################################
 ## HELPER FUNCTIONS FROM https://github.com/pforret/bash-boilerplate/

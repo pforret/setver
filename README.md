@@ -20,27 +20,32 @@ to bump the version
 ## Supported versioning 
 
 * Semantic Versioning helper script, to get and set semver version numbers
-* handles versioning for composer.json: for PHP, composer packages
-* handles versioning for package.json: for node, npm
-* handles versioning for .env.example: for PHP, Python, Ruby
-* handles versioning for VERSION.md: for bash
-* handles versioning by 'git tag': for Github, Bitbucket
+* handles versioning for `composer.json`: for PHP, composer packages
+* handles versioning for `package.json`: for node, npm
+* handles versioning for `.env.example`: for PHP, Python, Ruby
+* handles versioning for `VERSION.md`: for bash
+* handles versioning by '`git tag`': for Github, Bitbucket
 
 ## Usage
-
-* `setver get` : get the current version (from git tag/composer/npm)
-* `setver check` : compare all versions of git tag, composer, npm, VERSION.md
-
-* `setver push` : short for git commit -a && git push
-* `setver auto` : short for git commit -a && git push with auto-generated commit message
-* `setver skip-ci` : short for git commit -a && git push (with [skip ci] in commit message)
-
-* `setver changes` : add new chapter in CHANGELOG.md for latest version
-
-* `setver set <version>`: set the current version through git tag and composer
-* `setver new major`: add +1 major version e.g. 2.4.17 -> 3.0.0
-* `setver new minor`: add +1 minor version e.g. 2.4.17 -> 2.5.0
-* `setver new patch`: add +1 patch version e.g. 2.4.17 -> 2.4.18
+```
+# setver v1.12.11 - by Peter Forret <peter@forret.com>
+# Usage:
+    setver [-h] [-v] [-s] [get/check/push/auto/skip/set/new/history/changelog] [version]
+    -h: extended help
+    -v: verbose mode (more output to stderr)
+    -s: add [skip_ci] flag to
+    get      : get current version (from git tag and composer) -- can be used in scripts
+    check    : compare versions of git tag and composer
+    push     : do a git commit -a and and git push, edit commit message manually
+    auto     : like 'push', with automatic commit message
+    skip     : like 'auto', and add [skip_ci] to commit message
+    set <version>: set current version through git tag and composer
+    new major: new major version e.g. 2.5.17 -> 3.0.0
+    new minor: new minor version e.g. 2.5.17 -> 2.6.0
+    new patch: new patch version e.g. 2.5.17 -> 2.5.18
+    history  : show last commits
+    changelog: add chapter with latest changes to CHANGELOG.md
+```
 
 ## Installation
 

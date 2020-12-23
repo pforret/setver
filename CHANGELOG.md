@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - add content to CHANGELOG.md automatically
  
+## [1.12.11] - 2020-12-23
+### Added/changed
+- remove traces of semver.sh
+- remove tmp folders
+- add logo, created with splashmark 
+
 ## [1.11.0] - 2020-08-13
 ### Added/changed
 - add .env.example versioning
