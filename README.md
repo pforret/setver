@@ -35,6 +35,7 @@ to bump the version
     -v: verbose mode (more output to stderr)
     -s: add [skip_ci] flag to
     get      : get current version (from git tag and composer) -- can be used in scripts
+    md       : create VERSION.md for this repository
     check    : compare versions of git tag and composer
     push     : do a git commit -a and and git push, edit commit message manually
     auto     : like 'push', with automatic commit message

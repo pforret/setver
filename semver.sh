@@ -60,6 +60,20 @@ main() {
     get_any_version
     ;;
 
+  md)
+    #USAGE: setver md      : create a VERSION.md file if in this repo, if there is none yet
+    git_repo_root=$(git rev-parse --show-toplevel)
+    git_version_md="$git_repo_root/VERSION.md"
+    if [[ ! -f "$git_version_md" ]] ; then
+      repo_version=$(get_any_version)
+      echo "$repo_version" > "$git_version_md"
+      git add "$git_version_md"
+      out "VERSION.md was created (version $repo_version)"
+    else
+      alert "VERSION.md already exists for this repo $git_repo_root"
+    fi
+    ;;
+
   check)
     #USAGE: setver check    : compare version of composer.json, package.json, VERSION.md and git tag
     check_versions
