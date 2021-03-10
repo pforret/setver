@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
  
+## [1.14.0] - 2021-03-10
+### Added/changed
+- remove old naming
+- more robust server get
+- add setver md operation 
 ## [1.12.13] - 2020-12-23
 ### Added/changed
 - detect if no remote url
