@@ -111,7 +111,7 @@ main() {
 
   changes | changelog)
     #USAGE: setver changelog: format new CHANGELOG.md chapter
-    add_to_changelog "$(get_any_version)"
+    add_to_changedebug "$(get_any_version)"
     ;;
 
   history)
@@ -177,23 +177,23 @@ END
 
 get_any_version() {
   local version="0.0.0"
-  if [[ -f VERSION.md ]]; then
-    log "Version from VERSION.md"
+  if [[ -n "$(get_version_md)" ]]; then
+    debug "Version from VERSION.md"
     get_version_md
     return 0
   fi
   if [[ -n $(get_version_tag) ]]; then
-    log "Version from git tag"
+    debug "Version from git tag"
     get_version_tag
     return 0
   fi
-  if [[ $uses_composer -gt 0 ]]; then
-    log "Version from composer"
+  if [[ -n "$(get_version_composer)" ]]; then
+    debug "Version from composer"
     get_version_composer
     return 0
   fi
-  if [[ $uses_npm -gt 0 ]]; then
-    log "Version from npm"
+  if [[ -n "$(get_version_npm)" ]]; then
+    debug "Version from npm"
     get_version_npm
     return
   fi
@@ -210,7 +210,7 @@ get_version_tag() {
     | tail -1 \
     | awk -F. '{printf ("%d.%d.%d",$1 + 0 ,$2 + 0,$3 + 0);}'
   else
-    log "No git tag yet in this repo"
+    debug "No git tag yet in this repo"
     echo ""
   fi
 }
@@ -221,7 +221,7 @@ get_version_md() {
     version=$(cat VERSION.md)
     echo "$version"
   else
-    log "No 'VERSION.md' in this folder"
+    debug "No 'VERSION.md' in this folder"
     echo ""
   fi
 }
@@ -237,17 +237,17 @@ get_version_composer() {
         echo "$version"
       else
         # composer not installed on this machine
-        log "Composer not installed"
+        debug "Composer not installed"
         echo ""
       fi
     else
       # no "version" field in composer.json
-      log "No 'version' field in composer.json"
+      debug "No 'version' field in composer.json"
       echo ""
     fi
   else
     # no composer.json in this folder
-    log "No 'composer.json' in this folder"
+    debug "No 'composer.json' in this folder"
     echo ""
   fi
 }
@@ -262,16 +262,16 @@ get_version_npm() {
         | cut -d' ' -f1 \
         | cut -d@ -f2
       else
-        log "npm not installed"
+        debug "npm not installed"
       fi
     else
       # no "version" field in package.json
-      log "No 'version' field in package.json"
+      debug "No 'version' field in package.json"
       echo ""
     fi
   else
     # no package.json in this folder
-    log "No 'package.json' in this folder"
+    debug "No 'package.json' in this folder"
     echo ""
   fi
 }
@@ -287,7 +287,7 @@ get_version_env() {
       ' < "$env_example" | head -1
 
   else
-    log "no $env_example in this folder"
+    debug "no $env_example in this folder"
     echo ""
   fi
 }
@@ -538,7 +538,7 @@ commit_and_push() {
 
   #default_message="$(git diff --shortstat  | tail -1): $(git diff --compact-summary  | awk -F\| '/\|/ {print $1 "," }' | xargs)"
   default_message="$(def_commit_message)"
-  log "Commit message = [$default_message]"
+  debug "Commit message = [$default_message]"
 
   case "$mode" in
   skip-ci|skipci)
@@ -563,10 +563,10 @@ push_if_possible(){
   local check_remote=""
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]] ; then
-    log "push to remote [$check_remote]"
+    debug "push to remote [$check_remote]"
     git push
   else
-    log "No remote set - skip git push"
+    debug "No remote set - skip git push"
   fi
 }
 #####################################################################
@@ -603,7 +603,7 @@ else
 fi
 
 out() { printf '%b\n' "$*"; }
-log() { [[ $verbose -gt 0 ]] && printf "  ${col_ylw}%b${col_def}\n" "$*" >&2; }
+debug() { [[ $verbose -gt 0 ]] && printf "  ${col_ylw}%b${col_def}\n" "$*" >&2; }
 wait() { printf '%b\r' "$char_wait" && sleep "$1"; }
 success() { out "${col_grn}${char_succ}${col_def}  $*"; }
 alert() { out "${col_ylw}${char_warn}${col_def}: $*" >&2; }

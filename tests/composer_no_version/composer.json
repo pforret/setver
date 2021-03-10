@@ -1,5 +1,5 @@
 {
-    "name": "pforret/semver",
+    "name": "pforret/setver",
     "description": "Semantic Versioning helper script for composer.json, package.json, VERSION.md, .env.example, git tags",
     "license": "MIT",
     "authors": [
