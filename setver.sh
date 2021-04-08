@@ -35,11 +35,13 @@ env_example=".env.example"
 verbose=0
 check_in_root=1
 usage=0
-while getopts rvh option ; do
+prefix="v"
+while getopts rvhp: option ; do
   case $option in
   r)  check_in_root=0 ;;
   v)  verbose=1 ;;
   h)  usage=1 ;;
+  p)  prefix="$OPTARG" ;;
   *)  echo "Unknown option -$option"
   esac
 done
@@ -152,6 +154,7 @@ show_usage_and_quit() {
     $script_fname [-h] [-v] [-s] [get/check/push/auto/skip/set/new/history/changelog] [version]
     -h: extended help
     -v: verbose mode (more output to stderr)
+    -p <prefix>: use as prefix for git tag (default: "v")
     -s: add [skip_ci] flag to
     get      : get current version (from git tag and composer) -- can be used in scripts
     check    : compare versions of git tag and composer
@@ -205,6 +208,7 @@ get_version_tag() {
   if [[ -n $(git tag) ]] ; then
     git tag \
     | sed 's/v//' \
+    | sed "s/$prefix//" \
     | awk -F. '{printf("%04d.%04d.%04d\n",$1,$2,$3);}' \
     | sort \
     | tail -1 \
@@ -477,7 +481,7 @@ set_versions() {
   if [[ $skip_git_tag == 0 ]]; then
     success "set git version tag"
     wait 1
-    git tag "v$new_version"
+    git tag "$prefix$new_version"
   fi
 
   # also push tags to github/bitbucket

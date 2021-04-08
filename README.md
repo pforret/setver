@@ -47,6 +47,19 @@ to bump the version
     changelog: add chapter with latest changes to CHANGELOG.md
 ```
 
+## Example:
+
+    > setver new patch   
+    ✔  version 1.12.0 -> 1.12.1
+    ✔  set version in package.json
+    ✔  set version in composer.json
+    ✔  set version in .env.example
+    ✔  set version in VERSION.md
+    ✔  commit and push changed files
+    ✔  push tags to git@github.com:pforret/setver.git
+    ✔  to create a release, go to https://github.com/pforret/setver
+
+
 ## Installation
 
 with [basher](https://github.com/basherpm/basher)
@@ -59,18 +72,6 @@ or the hard way
     git clone https://github.com/pforret/setver.git
     # if you want the script to be in your path
     ln -s <cloned_folder>/setver /usr/local/bin/
-
-## Example:
-
-    > setver new patch   
-    ✔  version 1.12.0 -> 1.12.1
-    ✔  set version in package.json
-    ✔  set version in composer.json
-    ✔  set version in .env.example
-    ✔  set version in VERSION.md
-    ✔  commit and push changed files
-    ✔  push tags to git@github.com:pforret/setver.git
-    ✔  to create a release, go to https://github.com/pforret/setver
 
 ## References
 * https://semver.org/
