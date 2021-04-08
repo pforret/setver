@@ -415,7 +415,7 @@ set_versions() {
   if [[ $uses_npm -gt 0 ]]; then
     # for NPM/node repos
     # first change package.json
-    success "set version in package.json"
+    success "set version in package.json: $new_version"
     wait 1
     npm version "$new_version"
     skip_git_tag=1 # npm also creates the tag
@@ -427,7 +427,7 @@ set_versions() {
   if [[ $uses_composer -gt 0 ]]; then
     # for PHP repos
     # first change composer.json
-    success "set version in composer.json"
+    success "set version in composer.json: $new_version"
 
     wait 1
     composer config version "$new_version" 2> /dev/null
@@ -438,7 +438,7 @@ set_versions() {
   ### .env
   if [[ $uses_env -gt 0 ]]; then
     # for Ruby/PHP/bash/...
-    success "set version in $env_example"
+    success "set version in $env_example: $new_version"
     wait 1
     env_temp="$env_example.tmp"
     awk -F= -v version="$new_version" '
@@ -464,7 +464,7 @@ set_versions() {
   ### VERSION.md
   if [[ -f VERSION.md ]]; then
     # for bash repos
-    success "set version in VERSION.md"
+    success "set version in VERSION.md: $new_version"
     wait 1
     echo "$new_version" >VERSION.md
     git add VERSION.md
@@ -479,7 +479,7 @@ set_versions() {
 
   # now create new version tag
   if [[ $skip_git_tag == 0 ]]; then
-    success "set git version tag"
+    success "set git version tag: $prefix$new_version"
     wait 1
     git tag "$prefix$new_version"
   fi
