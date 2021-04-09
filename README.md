@@ -28,11 +28,12 @@ to bump the version
 
 ## Usage
 ```
-# setver v1.14.0 - by Peter Forret <peter@forret.com>
+# setver v1.15.1 - by Peter Forret <peter@forret.com>
 # Usage:
     setver [-h] [-v] [-s] [get/check/push/auto/skip/set/new/history/changelog] [version]
     -h: extended help
     -v: verbose mode (more output to stderr)
+    -p <prefix>: use as prefix for git tag (default: "v")
     -s: add [skip_ci] flag to
     get      : get current version (from git tag and composer) -- can be used in scripts
     check    : compare versions of git tag and composer
@@ -44,7 +45,7 @@ to bump the version
     new minor: new minor version e.g. 2.5.17 -> 2.6.0
     new patch: new patch version e.g. 2.5.17 -> 2.5.18
     history  : show last commits
-    changelog: add chapter with latest changes to CHANGELOG.md
+    changelog: add chapter with latest changes to CHANGELOG.md                                                     /0.6s
 ```
 
 ## Example:
