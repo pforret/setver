@@ -113,7 +113,8 @@ main() {
 check_requirements() {
   git --version >/dev/null 2>&1 || die "ERROR: git is not installed on this machine"
   git status >/dev/null 2>&1 || die "ERROR: this folder [] is not a git repository"
-  if [[ $check_in_root -gt 0 ]] ; then
+  # shellcheck disable=SC2154
+  if [[ $root -gt 0 ]] ; then
     [[ -d .git ]] || die "ERROR: $script_fname should be run from the git repo root"
   fi
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
@@ -148,8 +149,7 @@ get_version_tag() {
   # git tag gives sorted list, which means that 1.10.4 < 1.6.0
   if [[ -n $(git tag) ]] ; then
     git tag \
-    | sed 's/v//' \
-    | sed "s/$prefix//" \
+    | sed 's/[^0-9\.]//' \
     | awk -F. '{printf("%04d.%04d.%04d\n",$1,$2,$3);}' \
     | sort \
     | tail -1 \
@@ -427,6 +427,7 @@ set_versions() {
 
   # now create new version tag
   if [[ $skip_git_tag == 0 ]]; then
+    # shellcheck disable=SC2154
     success "set git version tag: $prefix$new_version"
     git tag "$prefix$new_version"
   fi
