@@ -360,7 +360,7 @@ set_versions() {
     # first change package.json
     success "set version in package.json: $new_version"
     sleep 1
-    npm version "$new_version"
+    npm version "$new_version" 2> "$tmp_dir/set_version_npm.log"
     skip_git_tag=1 # npm also creates the tag
     git add package.json
     do_git_push=1
@@ -373,7 +373,7 @@ set_versions() {
     success "set version in composer.json: $new_version"
 
     sleep 1
-    composer config version "$new_version" 2> /dev/null
+    composer config version "$new_version" 2> "$tmp_dir/set_version_composer.log"
     git add composer.json
     do_git_push=1
   fi
@@ -417,7 +417,9 @@ set_versions() {
   if [[ $do_git_push -gt 0 ]]; then
     success "commit and push changed files"
     sleep 1
-    (git commit -m "setver: set version to $new_version" -m "[skip ci]" && push_if_possible) 2>&1 | grep 'setver'
+    (
+    git commit -m "setver: set version to $new_version" -m "[skip ci]" && push_if_possible
+    ) 2>&1 | grep 'setver'
   fi
 
   # now create new version tag
