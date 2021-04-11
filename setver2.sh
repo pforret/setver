@@ -53,13 +53,13 @@ main() {
     message)  def_commit_message ;;
 
     #TIP: use «$script_prefix auto» to do commit/push with auto-generated commit message
-    auto)  create_version_md ;;
+    auto)  commit_and_push auto ;;
 
     #TIP: use «$script_prefix skip» to do commit/push with auto-generated commit message and skip GH actions
     skip | skip-ci | skipci)  commit_and_push skipci ;;
 
     #TIP: use «$script_prefix auto» to do commit/push with auto-generated commit message
-    md)  commit_and_push auto ;;
+    md)  create_version_md ;;
 
     #TIP: use «$script_prefix new major/minor/patch» to bump version number with 1
     #TIP: use «$script_prefix set x.y.z» to set new version number
@@ -152,7 +152,6 @@ get_version_tag() {
 }
 
 create_version_md(){
-    git_repo_root=$(git rev-parse --show-toplevel)
     git_version_md="$git_repo_root/VERSION.md"
     if [[ ! -f "$git_version_md" ]] ; then
       repo_version=$(get_any_version)
