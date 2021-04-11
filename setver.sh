@@ -368,6 +368,7 @@ set_versions() {
     # for NPM/node repos
     # first change package.json
     success "set version in package.json:  $new_version"
+    # shellcheck disable=SC2154
     npm version "$new_version" &> "$tmp_dir/set_version_npm.log"
     skip_git_tag=1 # npm also creates the tag
     git add package.json
