@@ -359,7 +359,7 @@ set_versions() {
     # for NPM/node repos
     # first change package.json
     success "set version in package.json: $new_version"
-    wait 1
+    sleep 1
     npm version "$new_version"
     skip_git_tag=1 # npm also creates the tag
     git add package.json
@@ -372,7 +372,7 @@ set_versions() {
     # first change composer.json
     success "set version in composer.json: $new_version"
 
-    wait 1
+    sleep 1
     composer config version "$new_version" 2> /dev/null
     git add composer.json
     do_git_push=1
@@ -382,7 +382,7 @@ set_versions() {
   if [[ $uses_env -gt 0 ]]; then
     # for Ruby/PHP/bash/...
     success "set version in $env_example: $new_version"
-    wait 1
+    sleep 1
     env_temp="$env_example.tmp"
     awk -F= -v version="$new_version" '
       {
@@ -408,7 +408,7 @@ set_versions() {
   if [[ -f VERSION.md ]]; then
     # for bash repos
     success "set version in VERSION.md: $new_version"
-    wait 1
+    sleep 1
     echo "$new_version" >VERSION.md
     git add VERSION.md
     do_git_push=1
@@ -416,21 +416,21 @@ set_versions() {
 
   if [[ $do_git_push -gt 0 ]]; then
     success "commit and push changed files"
-    wait 1
+    sleep 1
     (git commit -m "setver: set version to $new_version" -m "[skip ci]" && push_if_possible) 2>&1 | grep 'setver'
   fi
 
   # now create new version tag
   if [[ $skip_git_tag == 0 ]]; then
     success "set git version tag: $prefix$new_version"
-    wait 1
+    sleep 1
     git tag "$prefix$new_version"
   fi
 
   # also push tags to github/bitbucket
   if [[ -n "$remote_url" ]] ; then
     success "push tags to $remote_url"
-    wait 1
+    sleep 1
     git push --tags 2>&1 | grep 'new tag'
   fi
 
