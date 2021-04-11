@@ -416,7 +416,6 @@ set_versions() {
 
   if [[ $do_git_push -gt 0 ]]; then
     success "commit and push changed files"
-    sleep 1
     (
     git commit -m "setver: set version to $new_version" -m "[skip ci]" && push_if_possible
     ) &> "$tmp_dir/set_version_push.log"
@@ -432,7 +431,6 @@ set_versions() {
   # also push tags to github/bitbucket
   if [[ -n "$remote_url" ]] ; then
     success "push tags to $remote_url"
-    sleep 1
     git push --tags  &> "$tmp_dir/set_version_tags.log"
   fi
 
