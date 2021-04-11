@@ -44,33 +44,42 @@ main() {
   action=$(lower_case "$action")
   case $action in
     #TIP: use «$script_prefix get» to get the version (returns 1 line with the version nr)
-    get)  get_any_version ;;
+    get)
+      get_any_version ;;
 
     #TIP: use «$script_prefix check» to get all versions available in this repo
-    check)  check_versions ;;
+    check)
+      check_versions ;;
 
     #TIP: use «$script_prefix message» to get the current auto-generated commit message
-    message)  def_commit_message ;;
+    message)
+      def_commit_message ;;
 
     #TIP: use «$script_prefix auto» to do commit/push with auto-generated commit message
-    auto)  commit_and_push auto ;;
+    auto)
+      commit_and_push auto ;;
 
     #TIP: use «$script_prefix skip» to do commit/push with auto-generated commit message and skip GH actions
-    skip | skip-ci | skipci)  commit_and_push skipci ;;
+    skip | skip-ci | skipci)
+      commit_and_push skipci ;;
 
     #TIP: use «$script_prefix auto» to do commit/push with auto-generated commit message
-    md)  create_version_md ;;
+    md)
+      create_version_md ;;
 
     #TIP: use «$script_prefix new major/minor/patch» to bump version number with 1
     #TIP: use «$script_prefix set x.y.z» to set new version number
-    set | new | bump | version)  set_versions "$input"    ;;
+    set | new | bump | version)
+    # shellcheck disable=SC2154
+      set_versions "$input"    ;;
 
     #TIP: use «$script_prefix push» to do commit/push with auto-generated commit message
-    push | commit | github) commit_and_push ;;
+    push | commit | github)
+      commit_and_push ;;
 
     #TIP: use «$script_prefix history» to show the git history in a compact format
-    history) show_history ;;
-
+    history)
+      show_history ;;
 
   env)
     ## leave this default action, it will make it easier to test your script
