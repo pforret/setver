@@ -358,7 +358,7 @@ set_versions() {
   if [[ $uses_npm -gt 0 ]]; then
     # for NPM/node repos
     # first change package.json
-    success "set version in package.json: $new_version"
+    success "set version in package.json:  $new_version"
     sleep 1
     npm version "$new_version" &> "$tmp_dir/set_version_npm.log"
     skip_git_tag=1 # npm also creates the tag
@@ -381,7 +381,7 @@ set_versions() {
   ### .env
   if [[ $uses_env -gt 0 ]]; then
     # for Ruby/PHP/bash/...
-    success "set version in $env_example: $new_version"
+    success "set version in $env_example:  $new_version"
     sleep 1
     env_temp="$env_example.tmp"
     awk -F= -v version="$new_version" '
@@ -407,7 +407,7 @@ set_versions() {
   ### VERSION.md
   if [[ -f VERSION.md ]]; then
     # for bash repos
-    success "set version in VERSION.md: $new_version"
+    success "set version in VERSION.md:    $new_version"
     sleep 1
     echo "$new_version" >VERSION.md
     git add VERSION.md
@@ -419,7 +419,7 @@ set_versions() {
     sleep 1
     (
     git commit -m "setver: set version to $new_version" -m "[skip ci]" && push_if_possible
-    ) 2>&1 | grep 'setver'
+    ) &> "$tmp_dir/set_version_push.log"
   fi
 
   # now create new version tag
@@ -433,7 +433,7 @@ set_versions() {
   if [[ -n "$remote_url" ]] ; then
     success "push tags to $remote_url"
     sleep 1
-    git push --tags 2>&1 | grep 'new tag'
+    git push --tags  &> "$tmp_dir/set_version_tags.log"
   fi
 
   web_url=$(echo "$remote_url" | cut -d: -f2)
