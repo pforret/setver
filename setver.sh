@@ -63,7 +63,7 @@ main() {
     skip | skip-ci | skipci)
       commit_and_push skipci ;;
 
-    #TIP: use «$script_prefix auto» to do commit/push with auto-generated commit message
+    #TIP: use «$script_prefix md» to generate a correct VERSION.md file, if it does not yet exist
     md)
       create_version_md ;;
 

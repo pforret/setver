@@ -28,24 +28,37 @@ to bump the version
 
 ## Usage
 ```
-# setver v1.15.1 - by Peter Forret <peter@forret.com>
-# Usage:
-    setver [-h] [-v] [-s] [get/check/push/auto/skip/set/new/history/changelog] [version]
-    -h: extended help
-    -v: verbose mode (more output to stderr)
-    -p <prefix>: use as prefix for git tag (default: "v")
-    -s: add [skip_ci] flag to
-    get      : get current version (from git tag and composer) -- can be used in scripts
-    check    : compare versions of git tag and composer
-    push     : do a git commit -a and and git push, edit commit message manually
-    auto     : like 'push', with automatic commit message
-    skip     : like 'auto', and add [skip_ci] to commit message
-    set <version>: set current version through git tag and composer
-    new major: new major version e.g. 2.5.17 -> 3.0.0
-    new minor: new minor version e.g. 2.5.17 -> 2.6.0
-    new patch: new patch version e.g. 2.5.17 -> 2.5.18
-    history  : show last commits
-    changelog: add chapter with latest changes to CHANGELOG.md                                                     /0.6s
+Program: setver 2.0.0 by peter@forret.com
+Updated: Apr 11 22:49:42 2021
+Description: setver but based on bashew
+Usage: setver [-h] [-q] [-v] [-f] [-r] [-l <log_dir>] [-t <tmp_dir>] [-p <prefix>] <action> <input?>
+Flags, options and parameters:
+    -h|--help        : [flag] show usage [default: off]
+    -q|--quiet       : [flag] no output [default: off]
+    -v|--verbose     : [flag] output more [default: off]
+    -f|--force       : [flag] do not ask for confirmation [default: off]
+    -r|--root        : [flag] do not check if in root folder of repo [default: off]
+    -l|--log_dir <?> : [option] folder for log files   [default: /Users/pforret/log/setver]
+    -t|--tmp_dir <?> : [option] folder for temp files  [default: /tmp/setver]
+    -p|--prefix <?>  : [option] prefix to use for git tags  [default: v]
+    <action>         : [parameter] action to perform: get/check/push/set/new/md/message/auto/skip/changelog/history
+    <input>          : [parameter] input text (optional)
+                                  @github.com:pforret/setver.git                                             
+### TIPS & EXAMPLES
+* use setver get to get the version (returns 1 line with the version nr)
+* use setver check to get all versions available in this repo
+* use setver message to get the current auto-generated commit message
+* use setver auto to do commit/push with auto-generated commit message
+* use setver skip to do commit/push with auto-generated commit message and skip GH actions
+* use setver md to generate a correct VERSION.md file, if it does not yet exist
+* use setver new major/minor/patch to bump version number with 1
+* use setver set x.y.z to set new version number
+* use setver push to do commit/push with auto-generated commit message
+* use setver history to show the git history in a compact format
+* use setver env to generate an example .env file
+  setver env > .env
+* use setver update to update to the latest version
+* >>> bash script created with pforret/bashew
 ```
 
 ## Example:
