@@ -369,7 +369,9 @@ set_versions() {
     # first change package.json
     success "set version in package.json:  $new_version"
     # shellcheck disable=SC2154
-    npm version "$new_version" &> "$tmp_dir/set_version_npm.log"
+    outfile="$tmp_dir/set_version.npm.log"
+    npm version "$new_version" &> "$outfile" ||
+    alert "'npm version' failed - check $outfile for details"
     skip_git_tag=1 # npm also creates the tag
     git add package.json
     do_git_push=1
@@ -380,7 +382,9 @@ set_versions() {
     # for PHP repos
     # first change composer.json
     success "set version in composer.json: $new_version"
-    composer config version "$new_version" &> "$tmp_dir/set_version_composer.log"
+    outfile="$tmp_dir/set_version.composer.log"
+    composer config version "$new_version" &> "$outfile" ||
+    alert "'composer version' failed - check $outfile for details"
     git add composer.json
     do_git_push=1
   fi
@@ -421,22 +425,27 @@ set_versions() {
 
   if [[ $do_git_push -gt 0 ]]; then
     success "commit and push changed files"
-    (
-    git commit -m "setver: set version to $new_version" -m "[skip ci]" && push_if_possible
-    ) &> "$tmp_dir/set_version_push.log"
+    outfile="$tmp_dir/set_version.commit.log"
+    git commit -m "setver: set version to $new_version" -m "[skip ci]" &> "$outfile" &&
+    push_if_possible &> "$outfile" ||
+    alert "'git commit' failed - check $outfile for details"
   fi
 
   # now create new version tag
   if [[ $skip_git_tag == 0 ]]; then
     # shellcheck disable=SC2154
+    outfile="$tmp_dir/set_version.tag.log"
     success "set git version tag: $prefix$new_version"
-    git tag "$prefix$new_version"
+    git tag "$prefix$new_version" &> "$outfile" ||
+    alert "'git tag' failed - check $outfile for details"
   fi
 
   # also push tags to github/bitbucket
   if [[ -n "$remote_url" ]] ; then
+    outfile="$tmp_dir/set_version.push.log"
     success "push tags to $remote_url"
-    git push --tags  &> "$tmp_dir/set_version_tags.log"
+    git push --tags  &> "$outfile" ||
+    alert "'git push' failed - check $outfile for details"
   fi
 
   web_url=$(echo "$remote_url" | cut -d: -f2)
