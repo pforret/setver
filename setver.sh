@@ -533,6 +533,7 @@ push_if_possible(){
   outfile="$tmp_dir/git_push.log"
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]] ; then
+    debug "push to remote [$check_remote]"
     echo "push to remote [$check_remote]" &> "$outfile"
     if [[ -n "$flags" ]] ; then
       git push --tags &>> "$outfile" || alert "'git push --tags' failed - check $outfile for details"
