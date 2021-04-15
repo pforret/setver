@@ -535,10 +535,9 @@ push_if_possible(){
   if [[ -n "$check_remote" ]] ; then
     debug "push to remote [$check_remote]"
     echo "push to remote [$check_remote]" &> "$outfile"
+    git push &>> "$outfile" || alert "'git push' failed - check $outfile for details"
     if [[ -n "$flags" ]] ; then
       git push --tags &>> "$outfile" || alert "'git push --tags' failed - check $outfile for details"
-    else
-      git push &>> "$outfile" || alert "'git push' failed - check $outfile for details"
     fi
   else
     debug "No remote set - skip git push"
