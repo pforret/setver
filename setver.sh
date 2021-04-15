@@ -423,14 +423,6 @@ set_versions() {
     do_git_push=1
   fi
 
-  if [[ $do_git_push -gt 0 ]]; then
-    success "commit and push changed files"
-    outfile="$tmp_dir/set_version.commit.log"
-    git commit -m "setver: set version to $new_version" -m "[skip ci]" &> "$outfile" &&
-    push_if_possible &> "$outfile" ||
-    alert "'git commit' failed - check $outfile for details"
-  fi
-
   # now create new version tag
   if [[ $skip_git_tag == 0 ]]; then
     # shellcheck disable=SC2154
@@ -440,13 +432,21 @@ set_versions() {
     alert "'git tag' failed - check $outfile for details"
   fi
 
-  # also push tags to github/bitbucket
-  if [[ -n "$remote_url" ]] ; then
-    outfile="$tmp_dir/set_version.push.log"
-    success "push tags to $remote_url"
-    git push --tags  &> "$outfile" ||
-    alert "'git push' failed - check $outfile for details"
+  if [[ $do_git_push -gt 0 ]]; then
+    success "commit and push changed files"
+    outfile="$tmp_dir/set_version.commit.log"
+    git commit -m "setver: set version to $new_version" -m "[skip ci]" &> "$outfile" &&
+    push_if_possible "Y" &> "$outfile" ||
+    alert "'git commit' failed - check $outfile for details"
   fi
+
+#  # also push tags to github/bitbucket
+#  if [[ -n "$remote_url" ]] ; then
+#    outfile="$tmp_dir/set_version.push.log"
+#    success "push tags to $remote_url"
+#    git push --tags  &> "$outfile" ||
+#    alert "'git push' failed - check $outfile for details"
+#  fi
 
   web_url=$(echo "$remote_url" | cut -d: -f2)
   # should be like <username>/<repo>.git
@@ -530,10 +530,15 @@ show_history() {
 
 push_if_possible(){
   local check_remote=""
+  local flags=${1:-}
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]] ; then
     debug "push to remote [$check_remote]"
-    git push
+    if [[ -n "$flags" ]] ; then
+      git push --tags
+    else
+      git push
+    fi
   else
     debug "No remote set - skip git push"
   fi
