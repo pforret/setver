@@ -8,7 +8,6 @@ readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUS
 
 list_options() {
   echo -n "
-#commented lines will be filtered
 flag|h|help|show usage
 flag|q|quiet|no output
 flag|v|verbose|output more
@@ -427,6 +426,7 @@ set_versions() {
   if [[ $skip_git_tag == 0 ]]; then
     # shellcheck disable=SC2154
     outfile="$tmp_dir/set_version.tag.log"
+    # shellcheck disable=SC2154
     success "set git version tag: $prefix$new_version"
     git tag "$prefix$new_version" &> "$outfile" ||
     alert "'git tag' failed - check $outfile for details"
@@ -435,35 +435,34 @@ set_versions() {
   if [[ $do_git_push -gt 0 ]]; then
     success "commit and push changed files"
     outfile="$tmp_dir/set_version.commit.log"
-    git commit -m "setver: set version to $new_version" -m "[skip ci]" &> "$outfile" &&
-    push_if_possible "Y" &> "$outfile" ||
+    git commit -m "setver: set version to $new_version" -m "[skip ci]" &> "$outfile" ||
     alert "'git commit' failed - check $outfile for details"
+    push_if_possible "Y"
   fi
-
-#  # also push tags to github/bitbucket
-#  if [[ -n "$remote_url" ]] ; then
-#    outfile="$tmp_dir/set_version.push.log"
-#    success "push tags to $remote_url"
-#    git push --tags  &> "$outfile" ||
-#    alert "'git push' failed - check $outfile for details"
-#  fi
 
   web_url=$(echo "$remote_url" | cut -d: -f2)
   # should be like <username>/<repo>.git
   git_host=$(echo "$remote_url" | cut -d: -f1)
-  # should be like <username>/<repo>.git
+  # should be like git@github.com
   if [[ -n "$web_url" ]]; then
     username=$(dirname "$web_url")
     reponame=$(basename "$web_url" .git)
     case "$git_host" in
     git@github.com)
       web_url="https://github.com/$username/$reponame"
-      success "to create a release, go to $web_url"
+      success "Repo online on $web_url"
       ;;
+
     git@bitbucket.org)
       web_url="https://bitbucket.org/$username/$reponame"
       success "Repo online on $web_url"
       ;;
+
+    git@gitlab.com)
+      web_url="https://gitlab.com/$username/$reponame"
+      success "Repo online on $web_url"
+      ;;
+
     esac
   fi
 }
@@ -531,13 +530,14 @@ show_history() {
 push_if_possible(){
   local check_remote=""
   local flags=${1:-}
+  outfile="$tmp_dir/git_push.log"
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]] ; then
-    debug "push to remote [$check_remote]"
+    echo "push to remote [$check_remote]" &> "$outfile"
     if [[ -n "$flags" ]] ; then
-      git push --tags
+      git push --tags &>> "$outfile" || alert "'git push --tags' failed - check $outfile for details"
     else
-      git push
+      git push &>> "$outfile" || alert "'git push' failed - check $outfile for details"
     fi
   else
     debug "No remote set - skip git push"
