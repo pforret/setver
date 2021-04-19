@@ -366,6 +366,7 @@ set_versions() {
     # for PHP repos
     # first change composer.json
     success "set version in composer.json: $new_version"
+    # shellcheck disable=SC2154
     outfile="$tmp_dir/set_version.composer.log"
     composer config version "$new_version" &> "$outfile" ||
     alert "'composer version' failed - check $outfile for details"
@@ -412,7 +413,6 @@ set_versions() {
     # for NPM/node repos
     # first change package.json
     success "set version in package.json:  $new_version"
-    # shellcheck disable=SC2154
     outfile="$tmp_dir/set_version.npm.log"
     npm version --no-git-tag-version "$new_version" &> "$outfile" ||
     alert "'npm version' failed - check $outfile for details"
