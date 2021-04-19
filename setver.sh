@@ -414,19 +414,18 @@ set_versions() {
     success "set version in package.json:  $new_version"
     # shellcheck disable=SC2154
     outfile="$tmp_dir/set_version.npm.log"
-    npm version "$new_version" &> "$outfile" ||
+    npm version --no-git-tag-version "$new_version" &> "$outfile" ||
     alert "'npm version' failed - check $outfile for details"
     git add package.json
     do_git_push=1
-  else
-    # npm already creates the tag
-    # shellcheck disable=SC2154
-    outfile="$tmp_dir/set_version.tag.log"
-    # shellcheck disable=SC2154
-    success "set git version tag: $prefix$new_version"
-    git tag "$prefix$new_version" &> "$outfile" ||
-    alert "'git tag' failed - check $outfile for details"
   fi
+
+  # shellcheck disable=SC2154
+  outfile="$tmp_dir/set_version.tag.log"
+  # shellcheck disable=SC2154
+  success "set git version tag: $prefix$new_version"
+  git tag "$prefix$new_version" &> "$outfile" ||
+  alert "'git tag' failed - check $outfile for details"
 
   if [[ $do_git_push -gt 0 ]]; then
     success "commit changes"
@@ -530,10 +529,10 @@ push_if_possible(){
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]] ; then
     echo "push to remote [$check_remote]" &> "$outfile"
-    success "push changes to [$check_remote]"
+    success "push changes [$check_remote]"
     git push &>> "$outfile" || alert "'git push' failed - check $outfile for details"
     if [[ -n "$flags" ]] ; then
-      success "push tags to remote [$check_remote]"
+      success "push tags to [$check_remote]"
       git push --tags &>> "$outfile" || alert "'git push --tags' failed - check $outfile for details"
     fi
   else
