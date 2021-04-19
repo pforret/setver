@@ -1,6 +1,6 @@
 {
   "name": "setver",
-  "version": "2.1.7",
+  "version": "2.2.0",
   "description": "Semantic Versioning helper script for composer.json, package.json, git tag and VERSION.md -- works with Github/Bitbucket/Packagist",
   "main": "setver.sh",
   "scripts": {
