@@ -586,10 +586,10 @@ initialise_output() {
 
   [[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
   if [[ $unicode -gt 0 ]]; then
-    char_succ="☑"
-    char_fail="⛔"
-    char_alrt="✴️"
-    char_wait="⏳"
+    char_succ="√"
+    char_fail="×"
+    char_alrt="⊗️"
+    char_wait="…"
     info_icon="🌼"
     config_icon="🌱"
     clean_icon="🧽"
