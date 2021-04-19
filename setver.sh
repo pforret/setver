@@ -361,21 +361,6 @@ set_versions() {
   esac
   # TODO: fully support  [<newversion> | major | minor | patch | premajor | preminor | prepatch | prerelease [--preid=<prerelease-id>] | from-git]
 
-  skip_git_tag=0
-  ### package.json
-  if [[ $uses_npm -gt 0 ]]; then
-    # for NPM/node repos
-    # first change package.json
-    success "set version in package.json:  $new_version"
-    # shellcheck disable=SC2154
-    outfile="$tmp_dir/set_version.npm.log"
-    npm version "$new_version" &> "$outfile" ||
-    alert "'npm version' failed - check $outfile for details"
-    skip_git_tag=1 # npm also creates the tag
-    git add package.json
-    do_git_push=1
-  fi
-
   ### composer.json
   if [[ $uses_composer -gt 0 ]]; then
     # for PHP repos
@@ -422,8 +407,19 @@ set_versions() {
     do_git_push=1
   fi
 
-  # now create new version tag
-  if [[ $skip_git_tag == 0 ]]; then
+  ### package.json
+  if [[ $uses_npm -gt 0 ]]; then
+    # for NPM/node repos
+    # first change package.json
+    success "set version in package.json:  $new_version"
+    # shellcheck disable=SC2154
+    outfile="$tmp_dir/set_version.npm.log"
+    npm version "$new_version" &> "$outfile" ||
+    alert "'npm version' failed - check $outfile for details"
+    git add package.json
+    do_git_push=1
+  else
+    # npm already creates the tag
     # shellcheck disable=SC2154
     outfile="$tmp_dir/set_version.tag.log"
     # shellcheck disable=SC2154
@@ -433,7 +429,7 @@ set_versions() {
   fi
 
   if [[ $do_git_push -gt 0 ]]; then
-    success "commit and push changed files"
+    success "commit changes"
     outfile="$tmp_dir/set_version.commit.log"
     git commit -m "setver: set version to $new_version" -m "[skip ci]" &> "$outfile" ||
     alert "'git commit' failed - check $outfile for details"
@@ -533,10 +529,11 @@ push_if_possible(){
   outfile="$tmp_dir/git_push.log"
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]] ; then
-    debug "push to remote [$check_remote]"
     echo "push to remote [$check_remote]" &> "$outfile"
+    success "push changes to [$check_remote]"
     git push &>> "$outfile" || alert "'git push' failed - check $outfile for details"
     if [[ -n "$flags" ]] ; then
+      success "push tags to remote [$check_remote]"
       git push --tags &>> "$outfile" || alert "'git push --tags' failed - check $outfile for details"
     fi
   else
@@ -589,7 +586,7 @@ initialise_output() {
 
   [[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
   if [[ $unicode -gt 0 ]]; then
-    char_succ="✅"
+    char_succ="☑"
     char_fail="⛔"
     char_alrt="✴️"
     char_wait="⏳"
