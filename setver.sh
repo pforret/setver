@@ -417,6 +417,7 @@ set_versions() {
     npm version --no-git-tag-version "$new_version" &> "$outfile" ||
     alert "'npm version' failed - check $outfile for details"
     git add package.json
+    [[ -f package-lock.json ]] && git add package-lock.json
     do_git_push=1
   fi
 
