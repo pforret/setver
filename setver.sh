@@ -421,20 +421,24 @@ set_versions() {
     do_git_push=1
   fi
 
-  # shellcheck disable=SC2154
-  outfile="$tmp_dir/set_version.tag.log"
-  # shellcheck disable=SC2154
-  success "set git version tag: $prefix$new_version"
-  git tag "$prefix$new_version" &> "$outfile" ||
-  alert "'git tag' failed - check $outfile for details"
-
   if [[ $do_git_push -gt 0 ]]; then
     success "commit changes"
     outfile="$tmp_dir/set_version.commit.log"
     git commit -m "setver: set version to $new_version" -m "[skip ci]" &> "$outfile" ||
     alert "'git commit' failed - check $outfile for details"
+    # push all files changes
+    push_if_possible "N"
+
+    outfile="$tmp_dir/set_version.tag.log"
+    # shellcheck disable=SC2154
+    success "set git version tag: $prefix$new_version"
+    git tag "$prefix$new_version" &> "$outfile" || alert "'git tag' failed - check $outfile for details"
+
+    # push tags
     push_if_possible "Y"
   fi
+
+
 
   web_url=$(echo "$remote_url" | cut -d: -f2)
   # should be like <username>/<repo>.git
@@ -530,11 +534,12 @@ push_if_possible(){
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]] ; then
     echo "push to remote [$check_remote]" &> "$outfile"
-    success "push changes [$check_remote]"
-    git push &>> "$outfile" || alert "'git push' failed - check $outfile for details"
-    if [[ -n "$flags" ]] ; then
+    if [[ "$flags" == "Y" ]] ; then
       success "push tags to [$check_remote]"
-      git push --tags &>> "$outfile" || alert "'git push --tags' failed - check $outfile for details"
+      git push --tags &>> "$outfile" || die "'git push --tags' failed - check $outfile for details"
+    else
+      success "push changes [$check_remote]"
+      git push &>> "$outfile" || die "'git push' failed - check $outfile for details"
     fi
   else
     debug "No remote set - skip git push"
