@@ -434,7 +434,7 @@ set_versions() {
   fi
 
   if [[ $do_git_push -gt 0 ]]; then
-    success "commit changes"
+    debug "commit changes"
     outfile="$tmp_dir/set_version.commit.log"
     git commit -m "setver: set version to $new_version" -m "[skip ci]" &> "$outfile" ||
     alert "'git commit' failed - check $outfile for details"
