@@ -58,6 +58,18 @@ main() {
     auto)
       commit_and_push auto ;;
 
+    #TIP: use «$script_prefix autopatch» to do commit/push with auto-generated commit message & bump patch version
+    autopatch)
+      commit_and_push auto
+      set_versions patch
+      ;;
+
+    #TIP: use «$script_prefix autopatch» to do commit/push with auto-generated commit message & bump minor version
+    autominor)
+      commit_and_push auto
+      set_versions minor
+      ;;
+
     #TIP: use «$script_prefix skip» to do commit/push with auto-generated commit message and skip GH actions
     skip | skip-ci | skipci)
       commit_and_push skipci ;;
