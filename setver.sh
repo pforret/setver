@@ -377,7 +377,7 @@ set_versions() {
   if [[ $uses_composer -gt 0 ]]; then
     # for PHP repos
     # first change composer.json
-    success "set version in composer.json: $new_version"
+    debug "set version in composer.json: $new_version"
     # shellcheck disable=SC2154
     outfile="$tmp_dir/set_version.composer.log"
     composer config version "$new_version" &> "$outfile" ||
@@ -389,7 +389,7 @@ set_versions() {
   ### .env
   if [[ $uses_env -gt 0 ]]; then
     # for Ruby/PHP/bash/...
-    success "set version in $env_example:  $new_version"
+    debug "set version in $env_example:  $new_version"
     env_temp="$env_example.tmp"
     awk -F= -v version="$new_version" '
       {
@@ -414,7 +414,7 @@ set_versions() {
   ### VERSION.md
   if [[ -f VERSION.md ]]; then
     # for bash repos
-    success "set version in VERSION.md:    $new_version"
+    debug "set version in VERSION.md:    $new_version"
     echo "$new_version" >VERSION.md
     git add VERSION.md
     do_git_push=1
@@ -424,7 +424,7 @@ set_versions() {
   if [[ $uses_npm -gt 0 ]]; then
     # for NPM/node repos
     # first change package.json
-    success "set version in package.json:  $new_version"
+    debug "set version in package.json:  $new_version"
     outfile="$tmp_dir/set_version.npm.log"
     npm version --no-git-tag-version "$new_version" &> "$outfile" ||
     alert "'npm version' failed - check $outfile for details"
