@@ -172,7 +172,9 @@ get_version_tag() {
 }
 
 create_version_md(){
-    git_version_md="$git_repo_root/VERSION.md"
+    local git_version_md="$git_repo_root/VERSION.md"
+    local repo_version
+
     if [[ ! -f "$git_version_md" ]] ; then
       repo_version=$(get_any_version)
       echo "$repo_version" > "$git_version_md"
@@ -184,7 +186,6 @@ create_version_md(){
 }
 
 get_version_md() {
-  local version
   if [[ -f VERSION.md ]]; then
     cat VERSION.md
   else
@@ -327,7 +328,13 @@ show_version(){
 
 check_versions() {
   first_version=""
+  local version_tag
+  local version_composer
+  local version_md
+  local version_npm
+  local version_env
   success "$script_prefix check versions:"
+
   version_tag=$(get_version_tag)
   [[ -n $version_tag ]]      && show_version "$version_tag"      "git tag"
   version_composer=$(get_version_composer)
@@ -451,7 +458,10 @@ set_versions() {
   fi
 
 
-
+  local web_url
+  local git_host
+  local username
+  local reponame
   web_url=$(echo "$remote_url" | cut -d: -f2)
   # should be like <username>/<repo>.git
   git_host=$(echo "$remote_url" | cut -d: -f1)
@@ -460,22 +470,11 @@ set_versions() {
     username=$(dirname "$web_url")
     reponame=$(basename "$web_url" .git)
     case "$git_host" in
-    git@github.com)
-      web_url="https://github.com/$username/$reponame"
-      success "Repo online on $web_url"
-      ;;
-
-    git@bitbucket.org)
-      web_url="https://bitbucket.org/$username/$reponame"
-      success "Repo online on $web_url"
-      ;;
-
-    git@gitlab.com)
-      web_url="https://gitlab.com/$username/$reponame"
-      success "Repo online on $web_url"
-      ;;
-
+    git@github.com)     web_url="https://github.com/$username/$reponame"  ;;
+    git@bitbucket.org)  web_url="https://bitbucket.org/$username/$reponame" ;;
+    git@gitlab.com)     web_url="https://gitlab.com/$username/$reponame"  ;;
     esac
+      success "Repo online on $web_url"
   fi
 }
 
@@ -506,9 +505,9 @@ commit_and_push() {
   set +e
   trap - INT TERM EXIT
 
-  mode=${1:-}
+  local mode=${1:-}
 
-  #default_message="$(git diff --shortstat  | tail -1): $(git diff --compact-summary  | awk -F\| '/\|/ {print $1 "," }' | xargs)"
+  local default_message=""
   default_message="$(def_commit_message)"
   debug "Commit message = [$default_message]"
 
@@ -534,9 +533,7 @@ commit_and_push() {
 show_history() {
     trap - INT TERM EXIT
     git log --pretty=format:"%ci ; %ce ; %s" \
-    | grep -v "setver: set" \
     | more
-
 }
 
 push_if_possible(){
