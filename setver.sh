@@ -584,7 +584,7 @@ show_history() {
 push_if_possible(){
   local check_remote=""
   local flags=${1:-}
-  outfile="$tmp_dir/git_push.log"
+  outfile="$tmp_dir/${script_prefix}_push.log"
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]] ; then
     echo "push to remote [$check_remote]" &> "$outfile"
