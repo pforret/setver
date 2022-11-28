@@ -24,6 +24,7 @@ to bump the version
 * handles versioning for `package.json`: for node, npm
 * handles versioning for `.env.example`: for PHP, Python, Ruby
 * handles versioning for `VERSION.md`: for bash
+* handles versioning for `shellscript.sh`: for bash
 * handles versioning by '`git tag`': for Github, Bitbucket
 
 ## Usage
@@ -69,6 +70,7 @@ Flags, options and parameters:
     ✔  set version in composer.json
     ✔  set version in .env.example
     ✔  set version in VERSION.md
+    ✔  set version in shellscript.sh
     ✔  commit and push changed files
     ✔  push tags to git@github.com:pforret/setver.git
     ✔  to create a release, go to https://github.com/pforret/setver
