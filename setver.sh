@@ -39,6 +39,10 @@ main() {
   uses_env=0
   env_example=".env.example"
   [[ -f "$env_example" ]]  && uses_env=1
+  
+  uses_sh=0
+  sh=$(basename ./*.sh)
+  [[ -f "$sh" ]]  && uses_sh=1
 
   action=$(lower_case "$action")
   case $action in
@@ -153,6 +157,11 @@ get_any_version() {
     get_version_npm
     return
   fi
+  if [[ -n "$(get_version_sh)" ]]; then
+    debug "Version from sh"
+    get_version_sh
+    return
+  fi
   echo "$version"
 }
 
@@ -260,6 +269,15 @@ get_version_env() {
   fi
 }
 
+get_version_sh() {
+  if [[ $uses_sh -gt 0 ]]; then
+    grep -m 1 -iPo '\b\s*=\s*"\K.*?(?=")' "$sh"
+  else
+    debug "No 'sh' script in this folder"
+    echo ""
+  fi
+}
+
 add_to_changelog() {
   local version="$1"
   local changelog=CHANGELOG.md
@@ -333,6 +351,7 @@ check_versions() {
   local version_md
   local version_npm
   local version_env
+  local version_sh
   success "$script_prefix check versions:"
 
   version_tag=$(get_version_tag)
@@ -345,6 +364,8 @@ check_versions() {
   [[ -n $version_npm ]]      && show_version "$version_npm"      "package.json"
   version_env=$(get_version_env)
   [[ -n $version_env ]]      && show_version "$version_env"      ".env.example"
+  version_sh=$(get_version_sh)
+  [[ -n $version_sh ]]       && show_version "$version_sh"       "$sh"
 }
 
 set_versions() {
@@ -425,6 +446,30 @@ set_versions() {
     echo "$new_version" >VERSION.md
     git add VERSION.md
     do_git_push=1
+  fi
+  
+  ### shellscript.sh
+  if [[ $uses_sh -gt 0 ]]; then
+    sh_temp="$sh.tmp"
+    debug "set version in $sh:    $new_version"
+    awk -F= -v version="\"$new_version\"" '
+      {
+        if($1 == "VERSION" || $1 == "version"){
+          print $1 "=" version
+          }
+        else {
+          print
+          }
+      }
+      ' < "$sh" > "$sh_temp"
+    if [[ -n $(diff "$sh" "$sh_temp") ]] ; then
+      rm "$sh"
+      mv "$sh_temp" "$sh"
+      git add "$sh"
+      do_git_push=1
+    else
+      rm "$sh_temp"
+    fi
   fi
 
   ### package.json
