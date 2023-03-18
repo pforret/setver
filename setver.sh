@@ -66,13 +66,13 @@ main() {
     auto)
       commit_and_push auto ;;
 
-    #TIP: use «$script_prefix autopatch» to do commit/push with auto-generated commit message & bump patch version
+    #TIP: use «$script_prefix autopatch» or «$script_prefix ap» to do commit/push with auto-generated commit message & bump patch version
     autopatch|ap)
       commit_and_push auto
       set_versions patch
       ;;
 
-    #TIP: use «$script_prefix autopatch» to do commit/push with auto-generated commit message & bump minor version
+    #TIP: use «$script_prefix autominor» to do commit/push with auto-generated commit message & bump minor version
     autominor)
       commit_and_push auto
       set_versions minor
@@ -683,7 +683,7 @@ progress() {
     local rest_of_line
     rest_of_line=$((screen_width - 5))
 
-    if flag_set ${piped:-0}; then
+    if ((piped)); then
       out "$*" >&2
     else
       printf "... %-${rest_of_line}b\r" "$*                                             " >&2
@@ -831,6 +831,8 @@ check_last_version(){
     git remote update &> /dev/null
     if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]] ; then
       out "There is a more recent update of this script - run <<$script_prefix update>> to update"
+    else
+     out "                                                                              "
     fi
   fi
   # shellcheck disable=SC2164
@@ -1115,8 +1117,11 @@ recursive_readlink() {
 }
 
 lookup_script_data() {
+  # shellcheck disable=SC2155
   readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
+  # shellcheck disable=SC2155
   readonly script_basename=$(basename "${BASH_SOURCE[0]}")
+  # shellcheck disable=SC2155
   readonly execution_day=$(date "+%Y-%m-%d")
   #readonly execution_year=$(date "+%Y")
 
@@ -1124,6 +1129,7 @@ lookup_script_data() {
   debug "$info_icon Script path: $script_install_path"
   script_install_path=$(recursive_readlink "$script_install_path")
   debug "$info_icon Linked path: $script_install_path"
+  # shellcheck disable=SC2155
   readonly script_install_folder="$( cd -P "$( dirname "$script_install_path" )" && pwd )"
   debug "$info_icon In folder  : $script_install_folder"
   if [[ -f "$script_install_path" ]]; then
@@ -1144,6 +1150,7 @@ lookup_script_data() {
   [[ -n "${KSH_VERSION:-}" ]] && shell_brand="ksh" && shell_version="$KSH_VERSION"
   debug "$info_icon Shell type : $shell_brand - version $shell_version"
 
+  # shellcheck disable=SC2155
   readonly os_kernel=$(uname -s)
   os_version=$(uname -r)
   os_machine=$(uname -m)
@@ -1195,8 +1202,10 @@ lookup_script_data() {
 
   # if run inside a git repo, detect for which remote repo it is
   if git status &>/dev/null; then
+    # shellcheck disable=SC2155
     readonly git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
     debug "$info_icon git remote : $git_repo_remote"
+    # shellcheck disable=SC2155
     readonly git_repo_root=$(git rev-parse --show-toplevel)
     debug "$info_icon git folder : $git_repo_root"
   else
