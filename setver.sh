@@ -13,10 +13,12 @@ flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation
 flag|r|root|do not check if in root folder of repo
+flag|C|SKIP_COMPOSER|do not modify composer.json
+flag|N|SKIP_NPM|do not modify package.json (for npm)
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
 option|p|prefix|prefix to use for git tags|v
-param|1|action|action to perform: get/check/push/set/new/md/message/auto/skip/changelog/history
+param|1|action|action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/skip/changelog/history
 param|?|input|input text
 " | grep -v '^#' | grep -v '^\s*$'
 }
@@ -31,10 +33,12 @@ main() {
   uses_composer=0
   # shellcheck disable=SC2230
   [[ -f "composer.json" ]] && [[ -n $(which composer) ]] && uses_composer=1
+  (( SKIP_COMPOSER )) && uses_composer=0
 
   uses_npm=0
   # shellcheck disable=SC2230
   [[ -f "package.json" ]]  && [[ -n $(which npm) ]]    && uses_npm=1
+  (( SKIP_NPM )) && uses_npm=0
 
   uses_env=0
   env_example=".env.example"
@@ -63,7 +67,7 @@ main() {
       commit_and_push auto ;;
 
     #TIP: use «$script_prefix autopatch» to do commit/push with auto-generated commit message & bump patch version
-    autopatch)
+    autopatch|ap)
       commit_and_push auto
       set_versions patch
       ;;
