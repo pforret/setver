@@ -8,15 +8,19 @@
 ![setver logo](setver.jpg)
 
 ## TL;DR
-
-to push new changes to Github/Bitbucket
-
-    setver push
+```bash
+# to commit (and ask for message) and push new changes to Github/Bitbucket
+setver push
     
-to bump the version 
-
-    setver new minor
+# to commit with automatic commit message and push new changes to Github/Bitbucket
+setver auto
     
+# to just bump the version 
+setver new minor
+
+# to commit, push and bump the version in 1 go
+setver ap               # stands for autopatch    
+```
 ## Supported versioning 
 
 * Semantic Versioning helper script, to get and set semver version numbers
