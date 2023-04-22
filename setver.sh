@@ -31,13 +31,11 @@ main() {
   log_to_file "[$script_basename] $script_version started"
 
   uses_composer=0
-  # shellcheck disable=SC2230
-  [[ -f "composer.json" ]] && [[ -n $(which composer) ]] && uses_composer=1
+  [[ -f "composer.json" ]] && [[ -n $(command -v composer) ]] && uses_composer=1
   (( SKIP_COMPOSER )) && uses_composer=0
 
   uses_npm=0
-  # shellcheck disable=SC2230
-  [[ -f "package.json" ]]  && [[ -n $(which npm) ]]    && uses_npm=1
+  [[ -f "package.json" ]]  && [[ -n $(command -v npm) ]]    && uses_npm=1
   (( SKIP_NPM )) && uses_npm=0
 
   uses_env=0
@@ -45,11 +43,12 @@ main() {
   [[ -f "$env_example" ]]  && uses_env=1
   
   uses_sh=0
-  sh=$(basename ./*.sh)
-  [[ -f "$sh" ]]  && uses_sh=1
+  local dirname
+  dirname="$(dirname "$0")"
+  [[ -f "./$dirname.sh" ]]  && uses_sh=1
 
-  action=$(lower_case "$action")
-  case $action in
+  # shellcheck disable=SC2154
+  case "${action,,}" in
     #TIP: use «$script_prefix get» to get the version (returns 1 line with the version nr)
     get)
       get_any_version ;;
@@ -99,6 +98,10 @@ main() {
     #TIP: use «$script_prefix history» to show the git history in a compact format
     history)
       show_history ;;
+
+    #TIP: use «$script_prefix history» to show the git history in a compact format
+    changelog)
+      add_to_changelog "$(get_any_version)";;
 
   env)
     ## leave this default action, it will make it easier to test your script
@@ -274,7 +277,9 @@ get_version_env() {
 }
 
 get_version_sh() {
-  if [[ $uses_sh -gt 0 ]]; then
+  local sh
+  sh="./$(dirname "$0").sh"
+  if [[ -f "$sh" ]]; then
     grep -m 1 -iPo '\b\s*=\s*"\K.*?(?=")' "$sh"
   else
     debug "No 'sh' script in this folder"

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
  
+## [2.3.2] - 2023-04-22
+### Added/changed
+- MOD: README.md
+- MOD: README.md setver.sh
+- MOD: setver.sh 
+
 ## [1.14.0] - 2021-03-10
 ### Added/changed
 - remove old naming
