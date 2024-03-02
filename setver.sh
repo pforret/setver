@@ -1169,6 +1169,11 @@ lookup_script_data() {
     os_version=$(sw_vers -productVersion) # 11.1
     install_package="brew install"
     ;;
+  OpenBSD)
+    os_name=$(uname -s)
+    os_version=$(uname -r)
+    install_package="pkg_add -U"
+    ;;
   Linux | GNU*)
     if [[ $(command -v lsb_release) ]]; then
       # 'normal' Linux distributions
@@ -1199,7 +1204,8 @@ lookup_script_data() {
   script_modified="??"
   [[ "$os_kernel" == "Linux" ]] && script_modified=$(stat -c %y "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
   [[ "$os_kernel" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
-
+  [[ "$os_kernel" == "OpenBSD" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
+  
   debug "$info_icon Last modif : $script_modified"
   debug "$info_icon Script ID  : $script_lines lines / md5: $script_hash"
   debug "$info_icon Creation   : $script_created"
