@@ -1204,7 +1204,7 @@ lookup_script_data() {
   script_modified="??"
   [[ "$os_kernel" == "Linux" ]] && script_modified=$(stat -c %y "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
   [[ "$os_kernel" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
-  [[ "$os_kernel" == "OpenBSD" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
+  [[ "$os_kernel" == "OpenBSD" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for OpenBSD
   
   debug "$info_icon Last modif : $script_modified"
   debug "$info_icon Script ID  : $script_lines lines / md5: $script_hash"
