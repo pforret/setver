@@ -1,6 +1,6 @@
-.idea/
 .CHANGELOG*
-
+/.claude/
+/.idea/
+/.tmp
+/log
 /vendor/
-.tmp
-log
