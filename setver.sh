@@ -143,44 +143,22 @@ check_requirements() {
 }
 
 get_any_version() {
-  local version="0.0.0"
-  if [[ -n "$(get_version_md)" ]]; then
-    debug "Version from VERSION.md"
-    get_version_md
-    return 0
-  fi
-  if [[ -n $(get_version_tag) ]]; then
-    debug "Version from git tag"
-    get_version_tag
-    return 0
-  fi
-  if [[ -n "$(get_version_composer)" ]]; then
-    debug "Version from composer"
-    get_version_composer
-    return 0
-  fi
-  if [[ -n "$(get_version_npm)" ]]; then
-    debug "Version from npm"
-    get_version_npm
-    return
-  fi
-  if [[ -n "$(get_version_sh)" ]]; then
-    debug "Version from sh"
-    get_version_sh
-    return
-  fi
-  echo "$version"
+    local version
+    version=$(get_version_md) && [[ -n "$version" ]] && echo "$version" && return 0
+    version=$(get_version_tag) && [[ -n "$version" ]] && echo "$version" && return 0
+    version=$(get_version_composer) && [[ -n "$version" ]] && echo "$version" && return 0
+    version=$(get_version_npm) && [[ -n "$version" ]] && echo "$version" && return 0
+    version=$(get_version_sh) && [[ -n "$version" ]] && echo "$version" && return 0
+    echo "0.0.0"
 }
 
 get_version_tag() {
   # git tag gives sorted list, which means that 1.10.4 < 1.6.0
   if [[ -n $(git tag) ]] ; then
-    git tag \
-    | sed 's/[^0-9\.]//' \
-    | awk -F. '{printf("%04d.%04d.%04d\n",$1,$2,$3);}' \
-    | sort \
+    git tag --sort=version:refname \
+    | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' \
     | tail -1 \
-    | awk -F. '{printf ("%d.%d.%d",$1 + 0 ,$2 + 0,$3 + 0);}'
+    | sed 's/^v//'
   else
     debug "No git tag yet in this repo"
     echo ""
