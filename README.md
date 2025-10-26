@@ -1,6 +1,7 @@
 ![GitHub tag](https://img.shields.io/github/v/tag/pforret/setver)
 ![Shellcheck CI](https://github.com/pforret/setver/workflows/Shellcheck%20CI/badge.svg)
 ![Bash CI](https://github.com/pforret/setver/workflows/Bash%20CI/badge.svg)
+[![BATS tests](https://github.com/pforret/setver/actions/workflows/tests.yml/badge.svg)](https://github.com/pforret/setver/actions/workflows/tests.yml)
 ![GitHub](https://img.shields.io/github/license/pforret/setver)
 [![basher install](https://img.shields.io/badge/basher-install-white?logo=gnu-bash&style=flat)](https://basher.gitparade.com/package/)
 
