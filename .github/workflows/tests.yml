@@ -1,0 +1,161 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  bats-tests:
+    name: BATS Test Suite
+    runs-on: ${{ matrix.os }}
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Install bats (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bats git
+
+    - name: Install bats (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install bats-core
+
+    - name: Configure git
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "GitHub Actions Bot"
+
+    - name: Install npm (for package.json tests)
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Verify bats installation
+      run: |
+        bats --version
+        which bats
+
+    - name: Make scripts executable
+      run: chmod +x setver.sh tests/*.sh
+
+    - name: Run BATS test suite
+      run: |
+        echo "🧪 Running setver test suite on ${{ matrix.os }}..."
+        bats tests/setver.bats --tap
+
+    - name: Generate test report
+      if: always()
+      run: |
+        echo "## Test Results for ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+        if bats tests/setver.bats 2>&1 | tee test-output.txt; then
+          TOTAL=$(grep -c '^ok' test-output.txt || echo 0)
+          echo "✅ **All $TOTAL tests passed!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Categories" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Version bumping (major/minor/patch)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Error handling (typos, invalid input)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Git integration" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Multiple file formats" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Edge cases" >> $GITHUB_STEP_SUMMARY
+        else
+          PASSED=$(grep -c '^ok' test-output.txt || echo 0)
+          FAILED=$(grep -c '^not ok' test-output.txt || echo 0)
+          echo "❌ **Tests failed: $PASSED passed, $FAILED failed**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Failed Tests" >> $GITHUB_STEP_SUMMARY
+          grep '^not ok' test-output.txt | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY || true
+        fi
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.os }}
+        path: test-output.txt
+        retention-days: 30
+
+  test-coverage:
+    name: Test Coverage Report
+    runs-on: ubuntu-latest
+    needs: bats-tests
+    if: always()
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install bats
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bats git
+
+    - name: Configure git
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "GitHub Actions Bot"
+
+    - name: Install npm
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Generate coverage summary
+      run: |
+        chmod +x setver.sh
+        echo "# Test Coverage Summary" > coverage.md
+        echo "" >> coverage.md
+
+        # Run tests and capture output
+        if bats tests/setver.bats 2>&1 | tee full-test-output.txt; then
+          TOTAL=$(grep -c '^ok' full-test-output.txt)
+          echo "✅ **$TOTAL / $TOTAL tests passing (100%)**" >> coverage.md
+          echo "" >> coverage.md
+
+          # Extract test names by category
+          echo "## Test Breakdown" >> coverage.md
+          echo "" >> coverage.md
+          echo "### Basic Functionality" >> coverage.md
+          grep '^ok.*setver.*get\|^ok.*check\|^ok.*exists' full-test-output.txt | sed 's/^ok [0-9]* /- ✅ /' >> coverage.md || true
+          echo "" >> coverage.md
+
+          echo "### Version Bumping" >> coverage.md
+          grep '^ok.*bump.*major\|^ok.*bump.*minor\|^ok.*bump.*patch\|^ok.*bump.*bug' full-test-output.txt | sed 's/^ok [0-9]* /- ✅ /' >> coverage.md || true
+          echo "" >> coverage.md
+
+          echo "### Error Handling" >> coverage.md
+          grep '^ok.*typo\|^ok.*fail\|^ok.*invalid\|^ok.*dirty' full-test-output.txt | sed 's/^ok [0-9]* /- ✅ /' >> coverage.md || true
+          echo "" >> coverage.md
+
+          echo "### Multiple Formats" >> coverage.md
+          grep '^ok.*package\|^ok.*composer\|^ok.*env' full-test-output.txt | sed 's/^ok [0-9]* /- ✅ /' >> coverage.md || true
+        else
+          TOTAL=$(grep -c '^ok\|^not ok' full-test-output.txt)
+          PASSED=$(grep -c '^ok' full-test-output.txt)
+          FAILED=$(grep -c '^not ok' full-test-output.txt)
+          PERCENT=$((PASSED * 100 / TOTAL))
+          echo "⚠️ **$PASSED / $TOTAL tests passing ($PERCENT%)**" >> coverage.md
+        fi
+
+        # Add to step summary
+        cat coverage.md >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage.md
+        retention-days: 30

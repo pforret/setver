@@ -55,8 +55,18 @@ The script can read and update versions from:
 6. Pushes commits and tags to remote
 
 ### Testing
-- Basic test directories exist in `tests/` for different scenarios
-- No automated test runner - script uses manual validation
+- **Test Framework**: bats-core (Bash Automated Testing System)
+- **Test Location**: `tests/setver.bats` (50+ comprehensive tests)
+- **Test Helper**: `tests/test_helper.bash` (common test utilities)
+- **Installation**: `tests/install-bats.sh` (automatic bats installation)
+- **Run Tests**: `tests/run-tests.sh` or `bats tests/setver.bats`
+- **Test Coverage**:
+  - Version bumping (major/minor/patch)
+  - Error handling (typos, invalid input)
+  - Git integration (tags, clean status)
+  - Multiple file format updates
+  - Edge cases (0.0.0, leading zeros)
+- **CI/CD Ready**: Tests can be integrated into GitHub Actions, GitLab CI, etc.
 
 ## Configuration Options
 

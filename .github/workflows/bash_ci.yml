@@ -18,3 +18,33 @@ jobs:
 
     - name: Check for basic execution
       run: ls ./*.sh | xargs bash
+
+  test:
+    name: Run BATS Tests
+    runs-on: ubuntu-latest
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install bats-core
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bats
+
+    - name: Configure git
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+
+    - name: Run BATS tests
+      run: |
+        echo "🧪 Running setver test suite..."
+        bats tests/setver.bats
+
+    - name: Test summary
+      if: success()
+      run: |
+        echo "✅ All tests passed!"
+        echo "Total tests: $(bats tests/setver.bats 2>&1 | grep -c '^ok')"

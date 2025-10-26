@@ -6,7 +6,7 @@ readonly script_author="peter@forret.com"
 readonly script_created="2021-04-11"
 readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
 
-list_options() {
+function list_options() {
   echo -n "
 flag|h|help|show usage
 flag|q|quiet|no output
@@ -27,81 +27,96 @@ param|?|input|input text
 ## Put your main script here
 #####################################################################
 
-main() {
+function main() {
   log_to_file "[$script_basename] $script_version started"
 
   uses_composer=0
   [[ -f "composer.json" ]] && [[ -n $(command -v composer) ]] && uses_composer=1
-  (( SKIP_COMPOSER )) && uses_composer=0
+  ((SKIP_COMPOSER)) && uses_composer=0
 
   uses_npm=0
-  [[ -f "package.json" ]]  && [[ -n $(command -v npm) ]]    && uses_npm=1
-  (( SKIP_NPM )) && uses_npm=0
+  [[ -f "package.json" ]] && [[ -n $(command -v npm) ]] && uses_npm=1
+  ((SKIP_NPM)) && uses_npm=0
 
   uses_env=0
   env_example=".env.example"
-  [[ -f "$env_example" ]]  && uses_env=1
-  
+  [[ -f "$env_example" ]] && uses_env=1
+
   uses_sh=0
   local dirname
   dirname="$(dirname "$0")"
-  [[ -f "./$dirname.sh" ]]  && uses_sh=1
+  [[ -f "./$dirname.sh" ]] && uses_sh=1
 
   # shellcheck disable=SC2154
   case "${action,,}" in
-    #TIP: use «$script_prefix get» to get the version (returns 1 line with the version nr)
-    get)
-      get_any_version ;;
+  #TIP: use «$script_prefix get» to get the version (returns 1 line with the version nr)
+  get)
+    get_any_version
+    ;;
 
-    #TIP: use «$script_prefix check» to get all versions available in this repo
-    check)
-      check_versions ;;
+  #TIP: use «$script_prefix check» to get all versions available in this repo
+  check)
+    check_versions
+    ;;
 
-    #TIP: use «$script_prefix message» to get the current auto-generated commit message
-    message)
-      def_commit_message ;;
+  #TIP: use «$script_prefix message» to get the current auto-generated commit message
+  message)
+    def_commit_message
+    ;;
 
-    #TIP: use «$script_prefix auto» to do commit/push with auto-generated commit message
-    auto)
-      commit_and_push auto ;;
+  #TIP: use «$script_prefix auto» to do commit/push with auto-generated commit message
+  auto)
+    commit_and_push auto
+    ;;
 
-    #TIP: use «$script_prefix autopatch» or «$script_prefix ap» to do commit/push with auto-generated commit message & bump patch version
-    autopatch|ap)
-      commit_and_push auto
-      set_versions patch
-      ;;
+  #TIP: use «$script_prefix autopatch» or «$script_prefix ap» to do commit/push with auto-generated commit message & bump patch version
+  autopatch | ap)
+    commit_and_push auto
+    set_versions patch
+    ;;
 
-    #TIP: use «$script_prefix autominor» to do commit/push with auto-generated commit message & bump minor version
-    autominor)
-      commit_and_push auto
-      set_versions minor
-      ;;
+  #TIP: use «$script_prefix autominor» to do commit/push with auto-generated commit message & bump minor version
+  autominor)
+    commit_and_push auto
+    set_versions minor
+    ;;
 
-    #TIP: use «$script_prefix skip» to do commit/push with auto-generated commit message and skip GH actions
-    skip | skip-ci | skipci)
-      commit_and_push skipci ;;
+  #TIP: use «$script_prefix skip» to do commit/push with auto-generated commit message and skip GH actions
+  skip | skip-ci | skipci)
+    commit_and_push skipci
+    ;;
 
-    #TIP: use «$script_prefix md» to generate a correct VERSION.md file, if it does not yet exist
-    md)
-      create_version_md ;;
+  #TIP: use «$script_prefix md» to generate a correct VERSION.md file, if it does not yet exist
+  md)
+    create_version_md
+    ;;
 
-    #TIP: use «$script_prefix new major/minor/patch» to bump version number with 1
-    #TIP: use «$script_prefix set x.y.z» to set new version number
-    set | new | bump | version)
+  #TIP: use «$script_prefix set x.y.z» to set new version number
+  set | version)
     # shellcheck disable=SC2154
-      set_versions "$input"    ;;
+    set_versions "$input"
+    ;;
+
+  #TIP: use «$script_prefix new major/minor/patch» to bump version number with 1
+  new | bump)
+    # shellcheck disable=SC2154
+    bump_versions "$input"
+    ;;
 
     #TIP: use «$script_prefix push» to do commit/push with auto-generated commit message
-    push | commit | github)
-      commit_and_push ;;
+  push | commit | github)
+    commit_and_push
+    ;;
 
-    #TIP: use «$script_prefix history» to show the git history in a compact format
-    history)
-      show_history ;;
+  #TIP: use «$script_prefix history» to show the git history in a compact format
+  history)
+    show_history
+    ;;
 
-    #TIP: use «$script_prefix history» to show the git history in a compact format
-    changelog)
-      add_to_changelog "$(get_any_version)";;
+  #TIP: use «$script_prefix history» to show the git history in a compact format
+  changelog)
+    add_to_changelog "$(get_any_version)"
+    ;;
 
   env)
     ## leave this default action, it will make it easier to test your script
@@ -132,54 +147,54 @@ main() {
 ## Put your helper scripts here
 #####################################################################
 
-check_requirements() {
+function check_requirements() {
   git --version >/dev/null 2>&1 || die "ERROR: git is not installed on this machine"
   git status >/dev/null 2>&1 || die "ERROR: this folder [] is not a git repository"
   # shellcheck disable=SC2154
-  if [[ $root -gt 0 ]] ; then
+  if [[ $root -gt 0 ]]; then
     [[ -d .git ]] || die "ERROR: $script_fname should be run from the git repo root"
   fi
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
 }
 
-get_any_version() {
-    local version
-    version=$(get_version_md) && [[ -n "$version" ]] && echo "$version" && return 0
-    version=$(get_version_tag) && [[ -n "$version" ]] && echo "$version" && return 0
-    version=$(get_version_composer) && [[ -n "$version" ]] && echo "$version" && return 0
-    version=$(get_version_npm) && [[ -n "$version" ]] && echo "$version" && return 0
-    version=$(get_version_sh) && [[ -n "$version" ]] && echo "$version" && return 0
-    echo "0.0.0"
+function get_any_version() {
+  local version
+  version=$(get_version_md) && [[ -n "$version" ]] && echo "$version" && return 0
+  version=$(get_version_tag) && [[ -n "$version" ]] && echo "$version" && return 0
+  version=$(get_version_composer) && [[ -n "$version" ]] && echo "$version" && return 0
+  version=$(get_version_npm) && [[ -n "$version" ]] && echo "$version" && return 0
+  version=$(get_version_sh) && [[ -n "$version" ]] && echo "$version" && return 0
+  echo "0.0.0"
 }
 
-get_version_tag() {
+function get_version_tag() {
   # git tag gives sorted list, which means that 1.10.4 < 1.6.0
-  if [[ -n $(git tag) ]] ; then
-    git tag --sort=version:refname \
-    | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' \
-    | tail -1 \
-    | sed 's/^v//'
+  if [[ -n $(git tag) ]]; then
+    git tag --sort=version:refname |
+      grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' |
+      tail -1 |
+      sed 's/^v//'
   else
     debug "No git tag yet in this repo"
     echo ""
   fi
 }
 
-create_version_md(){
-    local git_version_md="$git_repo_root/VERSION.md"
-    local repo_version
+function create_version_md() {
+  local git_version_md="$git_repo_root/VERSION.md"
+  local repo_version
 
-    if [[ ! -f "$git_version_md" ]] ; then
-      repo_version=$(get_any_version)
-      echo "$repo_version" > "$git_version_md"
-      git add "$git_version_md"
-      out "VERSION.md was created (version $repo_version)"
-    else
-      alert "VERSION.md already exists for this repo $git_repo_root"
-    fi
+  if [[ ! -f "$git_version_md" ]]; then
+    repo_version=$(get_any_version)
+    echo "$repo_version" >"$git_version_md"
+    git add "$git_version_md"
+    out "VERSION.md was created (version $repo_version)"
+  else
+    alert "VERSION.md already exists for this repo $git_repo_root"
+  fi
 }
 
-get_version_md() {
+function get_version_md() {
   if [[ -f VERSION.md ]]; then
     cat VERSION.md
   else
@@ -188,14 +203,14 @@ get_version_md() {
   fi
 }
 
-get_version_composer() {
+function get_version_composer() {
   local version
   if [[ $uses_composer -gt 0 ]]; then
     # composer.json exists
-    if grep -q '"version"' composer.json ; then
+    if grep -q '"version"' composer.json; then
       # shellcheck disable=SC2230
-      if [[ -n $(which composer) ]] ; then
-        version=$(composer config version 2> /dev/null)
+      if [[ -n $(which composer) ]]; then
+        version=$(composer config version 2>/dev/null)
         echo "$version"
       else
         # composer not installed on this machine
@@ -214,15 +229,15 @@ get_version_composer() {
   fi
 }
 
-get_version_npm() {
-  if [[ $uses_npm -gt 0 ]] ; then
+function get_version_npm() {
+  if [[ $uses_npm -gt 0 ]]; then
     #package.json exists
-    if grep -q '"version"' package.json ; then
+    if grep -q '"version"' package.json; then
       if npm version >/dev/null 2>&1; then
-        npm ls 2>/dev/null \
-        | head -1 \
-        | cut -d' ' -f1 \
-        | cut -d@ -f2
+        npm ls 2>/dev/null |
+          head -1 |
+          cut -d' ' -f1 |
+          cut -d@ -f2
       else
         debug "npm not installed"
       fi
@@ -238,15 +253,15 @@ get_version_npm() {
   fi
 }
 
-get_version_env() {
+function get_version_env() {
   if [[ $uses_env -gt 0 ]]; then
-        awk -F= '
+    awk -F= '
       {
         if($1 == "VERSION" || $1 == "APP_VERSION"){
           print $2
           }
       }
-      ' < "$env_example" | head -1
+      ' <"$env_example" | head -1
 
   else
     debug "no $env_example in this folder"
@@ -254,7 +269,7 @@ get_version_env() {
   fi
 }
 
-get_version_sh() {
+function get_version_sh() {
   local sh
   sh="./$(dirname "$0").sh"
   if [[ -f "$sh" ]]; then
@@ -265,7 +280,7 @@ get_version_sh() {
   fi
 }
 
-add_to_changelog() {
+function add_to_changelog() {
   local version="$1"
   local changelog=CHANGELOG.md
   if [[ -f "$changelog" ]]; then
@@ -279,8 +294,8 @@ add_to_changelog() {
         sed 's/^/- /'
       echo " "
     ) >$temp_file
-    \
-      awk <"$changelog" \
+
+    awk <"$changelog" \
       '
         BEGIN {
           inserted=0
@@ -316,14 +331,14 @@ add_to_changelog() {
   fi
 }
 
-show_version(){
+function show_version() {
   local version="$1"
   local location="$2"
-  if [[ -z "$first_version" ]] ; then
+  if [[ -z "$first_version" ]]; then
     first_version="$version"
     printf "$col_grn$char_succ Version in %14s: %s$col_reset\n" "$location" "$version"
   else
-    if [[ "$version" == "$first_version" ]] ; then
+    if [[ "$version" == "$first_version" ]]; then
       printf "$col_grn$char_succ Version in %14s: %s$col_reset\n" "$location" "$version"
     else
       printf "$col_red$char_fail Version in %14s: [%s] != [$first_version]$col_reset\n" "$location" "$version"
@@ -331,7 +346,7 @@ show_version(){
   fi
 }
 
-check_versions() {
+function check_versions() {
   first_version=""
   local version_tag
   local version_composer
@@ -342,51 +357,27 @@ check_versions() {
   success "$script_prefix check versions:"
 
   version_tag=$(get_version_tag)
-  [[ -n $version_tag ]]      && show_version "$version_tag"      "git tag"
+  [[ -n $version_tag ]] && show_version "$version_tag" "git tag"
   version_composer=$(get_version_composer)
   [[ -n $version_composer ]] && show_version "$version_composer" "composer.json"
   version_md=$(get_version_md)
-  [[ -n $version_md ]]       && show_version "$version_md"       "VERSION.md"
+  [[ -n $version_md ]] && show_version "$version_md" "VERSION.md"
   version_npm=$(get_version_npm)
-  [[ -n $version_npm ]]      && show_version "$version_npm"      "package.json"
+  [[ -n $version_npm ]] && show_version "$version_npm" "package.json"
   version_env=$(get_version_env)
-  [[ -n $version_env ]]      && show_version "$version_env"      ".env.example"
+  [[ -n $version_env ]] && show_version "$version_env" ".env.example"
   version_sh=$(get_version_sh)
-  [[ -n $version_sh ]]       && show_version "$version_sh"       "$sh"
+  [[ -n $version_sh ]] && show_version "$version_sh" "$sh"
 }
 
-set_versions() {
-  git_status=$(git status -s)
-  if [[ -n "$git_status" ]]; then
-    die "ERROR: Git working directory not clean (check 'git status') "
-  fi
-  remote_url=$(git config remote.origin.url)
-  new_version="$1"
+function update_version_files() {
+  # Updates version numbers in all relevant files
+  # Arguments:
+  #   $1 - new_version: the version number to set
+  # Returns:
+  #   Sets do_git_push to 1 if any files were updated
+  local new_version="$1"
   do_git_push=0
-  current_semver=$(get_any_version)
-  semver_major=$(echo "$current_semver" | cut -d. -f1)
-  semver_minor=$(echo "$current_semver" | cut -d. -f2)
-  semver_patch=$(echo "$current_semver" | cut -d. -f3)
-  case "$new_version" in
-  major|MAJOR)
-    new_version="$((semver_major + 1)).0.0"
-    success "version $current_semver -> $new_version (bump major)"
-    ;;
-  minor)
-    new_version="$semver_major.$((semver_minor + 1)).0"
-    success "version $current_semver -> $new_version (bump minor)"
-    ;;
-  patch|bug|bugfix)
-    # supports auto|patch|fix
-    new_version="$semver_major.$semver_minor.$((semver_patch + 1))"
-    success "version $current_semver -> $new_version (bump patch)"
-    ;;
-
-  *)
-    new_version="$1"
-    success "version $current_semver -> $new_version (manual override)"
-  esac
-  # TODO: fully support  [<newversion> | major | minor | patch | premajor | preminor | prepatch | prerelease [--preid=<prerelease-id>] | from-git]
 
   ### composer.json
   if [[ $uses_composer -gt 0 ]]; then
@@ -395,8 +386,8 @@ set_versions() {
     debug "set version in composer.json: $new_version"
     # shellcheck disable=SC2154
     outfile="$tmp_dir/set_version.composer.log"
-    composer config version "$new_version" &> "$outfile" ||
-    alert "'composer version' failed - check $outfile for details"
+    composer config version "$new_version" &>"$outfile" ||
+      alert "'composer version' failed - check $outfile for details"
     git add composer.json
     do_git_push=1
   fi
@@ -415,8 +406,8 @@ set_versions() {
           print
           }
       }
-      ' < "$env_example" > "$env_temp"
-    if [[ -n $(diff "$env_example" "$env_temp") ]] ; then
+      ' <"$env_example" >"$env_temp"
+    if [[ -n $(diff "$env_example" "$env_temp") ]]; then
       rm "$env_example"
       mv "$env_temp" "$env_example"
       git add "$env_example"
@@ -434,7 +425,7 @@ set_versions() {
     git add VERSION.md
     do_git_push=1
   fi
-  
+
   ### shellscript.sh
   if [[ $uses_sh -gt 0 ]]; then
     sh_temp="$sh.tmp"
@@ -448,8 +439,8 @@ set_versions() {
           print
           }
       }
-      ' < "$sh" > "$sh_temp"
-    if [[ -n $(diff "$sh" "$sh_temp") ]] ; then
+      ' <"$sh" >"$sh_temp"
+    if [[ -n $(diff "$sh" "$sh_temp") ]]; then
       rm "$sh"
       mv "$sh_temp" "$sh"
       git add "$sh"
@@ -465,35 +456,24 @@ set_versions() {
     # first change package.json
     debug "set version in package.json:  $new_version"
     outfile="$tmp_dir/set_version.npm.log"
-    npm version --no-git-tag-version "$new_version" &> "$outfile" ||
-    alert "'npm version' failed - check $outfile for details"
+    npm version --no-git-tag-version "$new_version" &>"$outfile" ||
+      alert "'npm version' failed - check $outfile for details"
     git add package.json
     [[ -f package-lock.json ]] && git add package-lock.json
     do_git_push=1
   fi
+}
 
-  if [[ $do_git_push -gt 0 ]]; then
-    debug "commit changes"
-    outfile="$tmp_dir/set_version.commit.log"
-    git commit -m "setver: set version to $new_version" -m "[skip ci]" &> "$outfile" ||
-    alert "'git commit' failed - check $outfile for details"
-    # push all files changes
-    push_if_possible "N"
-
-    outfile="$tmp_dir/set_version.tag.log"
-    # shellcheck disable=SC2154
-    success "set git version tag: $prefix$new_version"
-    git tag "$prefix$new_version" &> "$outfile" || alert "'git tag' failed - check $outfile for details"
-
-    # push tags
-    push_if_possible "Y"
-  fi
-
-
+function show_repo_url() {
+  # Displays the web URL for the git repository
+  # Arguments:
+  #   $1 - remote_url: the git remote URL (e.g., git@github.com:user/repo.git)
+  local remote_url="$1"
   local web_url
   local git_host
   local username
   local reponame
+
   web_url=$(echo "$remote_url" | cut -d: -f2)
   # should be like <username>/<repo>.git
   git_host=$(echo "$remote_url" | cut -d: -f1)
@@ -502,18 +482,131 @@ set_versions() {
     username=$(dirname "$web_url")
     reponame=$(basename "$web_url" .git)
     case "$git_host" in
-    git@github.com)     web_url="https://github.com/$username/$reponame"  ;;
-    git@bitbucket.org)  web_url="https://bitbucket.org/$username/$reponame" ;;
-    git@gitlab.com)     web_url="https://gitlab.com/$username/$reponame"  ;;
+    git@github.com) web_url="https://github.com/$username/$reponame" ;;
+    git@bitbucket.org) web_url="https://bitbucket.org/$username/$reponame" ;;
+    git@gitlab.com) web_url="https://gitlab.com/$username/$reponame" ;;
     esac
-      success "Repo online on $web_url"
+    success "Repo online on $web_url"
   fi
 }
 
-def_commit_message(){
-  git status --short \
-  | sed 's/^ //' \
-  | awk '
+function commit_and_tag_version() {
+  # Commits version changes and creates git tag
+  # Arguments:
+  #   $1 - new_version: the version number to commit and tag
+  local new_version="$1"
+  local outfile
+
+  debug "commit changes"
+  outfile="$tmp_dir/set_version.commit.log"
+  git commit -m "setver: set version to $new_version" -m "[skip ci]" &>"$outfile" ||
+    alert "'git commit' failed - check $outfile for details"
+  # push all files changes
+  push_if_possible "N"
+
+  outfile="$tmp_dir/set_version.tag.log"
+  # shellcheck disable=SC2154
+  success "set git version tag: $prefix$new_version"
+  git tag "$prefix$new_version" &>"$outfile" || alert "'git tag' failed - check $outfile for details"
+
+  # push tags
+  push_if_possible "Y"
+}
+
+function bump_versions() {
+  git_status=$(git status -s)
+  if [[ -n "$git_status" ]]; then
+    die "ERROR: Git working directory not clean (check 'git status') "
+  fi
+  remote_url=$(git config remote.origin.url)
+  new_version="$1"
+  do_git_push=0
+  current_semver=$(get_any_version)
+  semver_major=$(echo "$current_semver" | cut -d. -f1)
+  semver_minor=$(echo "$current_semver" | cut -d. -f2)
+  semver_patch=$(echo "$current_semver" | cut -d. -f3)
+  case "$new_version" in
+  major | MAJOR)
+    new_version="$((semver_major + 1)).0.0"
+    success "version $current_semver -> $new_version (bump major)"
+    ;;
+  minor)
+    new_version="$semver_major.$((semver_minor + 1)).0"
+    success "version $current_semver -> $new_version (bump minor)"
+    ;;
+  patch | bug | bugfix)
+    # supports auto|patch|fix
+    new_version="$semver_major.$semver_minor.$((semver_patch + 1))"
+    success "version $current_semver -> $new_version (bump patch)"
+    ;;
+
+  *)
+    die "Unknown bump type: $new_version"
+    ;;
+  esac
+
+  # Update version in all relevant files
+  update_version_files "$new_version"
+
+  if [[ $do_git_push -gt 0 ]]; then
+    # Commit changes and create git tag
+    commit_and_tag_version "$new_version"
+  fi
+
+  # Show repository web URL
+  show_repo_url "$remote_url"
+}
+
+function set_versions() {
+  git_status=$(git status -s)
+  if [[ -n "$git_status" ]]; then
+    die "ERROR: Git working directory not clean (check 'git status') "
+  fi
+  remote_url=$(git config remote.origin.url)
+  new_version="$1"
+  do_git_push=0
+  current_semver=$(get_any_version)
+  semver_major=$(echo "$current_semver" | cut -d. -f1)
+  semver_minor=$(echo "$current_semver" | cut -d. -f2)
+  semver_patch=$(echo "$current_semver" | cut -d. -f3)
+  case "$new_version" in
+  major | MAJOR)
+    new_version="$((semver_major + 1)).0.0"
+    success "version $current_semver -> $new_version (bump major)"
+    ;;
+  minor)
+    new_version="$semver_major.$((semver_minor + 1)).0"
+    success "version $current_semver -> $new_version (bump minor)"
+    ;;
+  patch | bug | bugfix)
+    # supports auto|patch|fix
+    new_version="$semver_major.$semver_minor.$((semver_patch + 1))"
+    success "version $current_semver -> $new_version (bump patch)"
+    ;;
+
+  *)
+    new_version="$1"
+    success "version $current_semver -> $new_version (manual override)"
+    ;;
+  esac
+  # TODO: fully support  [<newversion> | major | minor | patch | premajor | preminor | prepatch | prerelease [--preid=<prerelease-id>] | from-git]
+
+  # Update version in all relevant files
+  update_version_files "$new_version"
+
+  if [[ $do_git_push -gt 0 ]]; then
+    # Commit changes and create git tag
+    commit_and_tag_version "$new_version"
+  fi
+
+  # Show repository web URL
+  show_repo_url "$remote_url"
+}
+
+function def_commit_message() {
+  git status --short |
+    sed 's/^ //' |
+    awk '
   function basename(file) {
     sub(".*/", "", file)
     return file
@@ -533,7 +626,7 @@ def_commit_message(){
   '
 }
 
-commit_and_push() {
+function commit_and_push() {
   set +e
   trap - INT TERM EXIT
 
@@ -544,7 +637,7 @@ commit_and_push() {
   debug "Commit message = [$default_message]"
 
   case "$mode" in
-  skip-ci|skipci)
+  skip-ci | skipci)
     success "Commit: $default_message [skip ci]"
     git commit -a -m "$default_message" -m "[skip ci]" && push_if_possible
     ;;
@@ -557,30 +650,31 @@ commit_and_push() {
   *)
     # interactive commit
     git commit -a && push_if_possible
+    ;;
 
   esac
 
 }
 
-show_history() {
-    trap - INT TERM EXIT
-    git log --pretty=format:"%ci ; %ce ; %s" \
-    | more
+function show_history() {
+  trap - INT TERM EXIT
+  git log --pretty=format:"%ci ; %ce ; %s" |
+    more
 }
 
-push_if_possible(){
+function push_if_possible() {
   local check_remote=""
   local flags=${1:-}
   outfile="$tmp_dir/${script_prefix}_push.log"
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
-  if [[ -n "$check_remote" ]] ; then
-    echo "push to remote [$check_remote]" &> "$outfile"
-    if [[ "$flags" == "Y" ]] ; then
+  if [[ -n "$check_remote" ]]; then
+    echo "push to remote [$check_remote]" &>"$outfile"
+    if [[ "$flags" == "Y" ]]; then
       success "push tags to [$check_remote]"
-      git push --tags &>> "$outfile" || die "'git push --tags' failed - check $outfile for details"
+      git push --tags &>>"$outfile" || die "'git push --tags' failed - check $outfile for details"
     else
       success "push changes [$check_remote]"
-      git push &>> "$outfile" || die "'git push' failed - check $outfile for details"
+      git push &>>"$outfile" || die "'git push' failed - check $outfile for details"
     fi
   else
     debug "No remote set - skip git push"
@@ -594,7 +688,7 @@ push_if_possible(){
 # removed -e because it made basic [[ testing ]] difficult
 set -uo pipefail
 IFS=$'\n\t'
-hash() {
+function hash() {
   length=${1:-6}
   if [[ -n $(command -v md5sum) ]]; then
     # regular linux
@@ -615,7 +709,7 @@ quiet=0
 [[ $# -gt 0 ]] && [[ $1 == "-q" ]] && quiet=1
 
 ### stdout/stderr output
-initialise_output() {
+function initialise_output() {
   [[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && sourced=1 || sourced=0
   [[ -t 1 ]] && piped=0 || piped=1 # detect if output is piped
   if [[ $piped -eq 0 ]]; then
@@ -653,13 +747,22 @@ initialise_output() {
   error_prefix="${col_red}>${col_reset}"
 }
 
-out() {     ((quiet)) && true || printf '%b\n' "$*"; }
-debug() {   if ((verbose)); then out "${col_ylw}# $* ${col_reset}" >&2; else true; fi; }
-die() {     out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2 ; tput bel ; safe_exit ; }
-alert() {   out "${col_red}${char_alrt}${col_reset}: $*" >&2 ; }
-success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
-announce() { out "${col_grn}${char_wait}${col_reset}  $*"; sleep 1 ; }
-progress() {
+function out() { ((quiet)) && true || printf '%b\n' "$*"; }
+function debug() { if ((verbose)); then out "${col_ylw}# $* ${col_reset}" >&2; else true; fi; }
+function die() {
+  out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2
+  tput bel
+  [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
+  trap - INT TERM EXIT
+  exit 1
+}
+function alert() { out "${col_red}${char_alrt}${col_reset}: $*" >&2; }
+function success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
+function announce() {
+  out "${col_grn}${char_wait}${col_reset}  $*"
+  sleep 1
+}
+function progress() {
   ((quiet)) || (
     local screen_width
     screen_width=$(tput cols 2>/dev/null || echo 80)
@@ -674,23 +777,23 @@ progress() {
   )
 }
 
-log_to_file() { [[ -n ${log_file:-} ]] && echo "$(date '+%H:%M:%S') | $*" >>"$log_file"; }
+function log_to_file() { [[ -n ${log_file:-} ]] && echo "$(date '+%H:%M:%S') | $*" >>"$log_file"; }
 
 ### string processing
-lower_case() { echo "$*" | tr '[:upper:]' '[:lower:]'; }
-upper_case() { echo "$*" | tr '[:lower:]' '[:upper:]'; }
+function lower_case() { echo "$*" | tr '[:upper:]' '[:lower:]'; }
+function upper_case() { echo "$*" | tr '[:lower:]' '[:upper:]'; }
 
-slugify() {
-    # slugify <input> <separator>
-    # slugify "Jack, Jill & Clémence LTD"      => jack-jill-clemence-ltd
-    # slugify "Jack, Jill & Clémence LTD" "_"  => jack_jill_clemence_ltd
-    separator="${2:-}"
-    [[ -z "$separator" ]] && separator="-"
-    # shellcheck disable=SC2020
-    echo "$1" |
-        tr '[:upper:]' '[:lower:]' |
-        tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
-        awk '{
+function slugify() {
+  # slugify <input> <separator>
+  # slugify "Jack, Jill & Clémence LTD"      => jack-jill-clemence-ltd
+  # slugify "Jack, Jill & Clémence LTD" "_"  => jack_jill_clemence_ltd
+  separator="${2:-}"
+  [[ -z "$separator" ]] && separator="-"
+  # shellcheck disable=SC2020
+  echo "$1" |
+    tr '[:upper:]' '[:lower:]' |
+    tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
+    awk '{
           gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_]/," ",$0);
           gsub(/^  */,"",$0);
           gsub(/  *$/,"",$0);
@@ -698,31 +801,31 @@ slugify() {
           gsub(/[^a-z0-9\-]/,"");
           print;
           }' |
-        sed "s/-/$separator/g"
+    sed "s/-/$separator/g"
 }
 
-title_case() {
-    # title_case <input> <separator>
-    # title_case "Jack, Jill & Clémence LTD"     => JackJillClemenceLtd
-    # title_case "Jack, Jill & Clémence LTD" "_" => Jack_Jill_Clemence_Ltd
-    separator="${2:-}"
-    # shellcheck disable=SC2020
-    echo "$1" |
-        tr '[:upper:]' '[:lower:]' |
-        tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
-        awk '{ gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_-]/," ",$0); print $0; }' |
-        awk '{
+function title_case() {
+  # title_case <input> <separator>
+  # title_case "Jack, Jill & Clémence LTD"     => JackJillClemenceLtd
+  # title_case "Jack, Jill & Clémence LTD" "_" => Jack_Jill_Clemence_Ltd
+  separator="${2:-}"
+  # shellcheck disable=SC2020
+  echo "$1" |
+    tr '[:upper:]' '[:lower:]' |
+    tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
+    awk '{ gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_-]/," ",$0); print $0; }' |
+    awk '{
           for (i=1; i<=NF; ++i) {
               $i = toupper(substr($i,1,1)) tolower(substr($i,2))
           };
           print $0;
           }' |
-        sed "s/ /$separator/g" |
-        cut -c1-50
+    sed "s/ /$separator/g" |
+    cut -c1-50
 }
 
 ### interactive
-confirm() {
+function confirm() {
   # $1 = question
   flag_set $force && return 0
   read -r -p "$1 [y/N] " -n 1
@@ -730,7 +833,7 @@ confirm() {
   [[ $REPLY =~ ^[Yy]$ ]]
 }
 
-ask() {
+function ask() {
   # $1 = variable name
   # $2 = question
   # $3 = default value
@@ -750,16 +853,16 @@ trap "die \"ERROR \$? after \$SECONDS seconds \n\
 'NR == lineno {print \"\${error_prefix} from line \" lineno \" : \" \$0}')" INT TERM EXIT
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
 
-safe_exit() {
+function safe_exit() {
   [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
   trap - INT TERM EXIT
   debug "$script_basename finished after $SECONDS seconds"
   exit 0
 }
 
-flag_set() { [[ "$1" -gt 0 ]]; }
+function flag_set() { [[ "$1" -gt 0 ]]; }
 
-show_usage() {
+function show_usage() {
   out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
   out "Updated: ${col_grn}$script_modified${col_reset}"
   out "Description: setver but based on bashew"
@@ -803,47 +906,47 @@ show_usage() {
   '
 }
 
-check_last_version(){
+function check_last_version() {
   (
-  # shellcheck disable=SC2164
-  pushd "$script_install_folder" &> /dev/null
-  if [[ -d .git ]] ; then
-    local remote
-    remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
-    progress "Check for latest version - $remote"
-    git remote update &> /dev/null
-    if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]] ; then
-      out "There is a more recent update of this script - run <<$script_prefix update>> to update"
-    else
-     out "                                                                              "
+    # shellcheck disable=SC2164
+    pushd "$script_install_folder" &>/dev/null
+    if [[ -d .git ]]; then
+      local remote
+      remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
+      progress "Check for latest version - $remote"
+      git remote update &>/dev/null
+      if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]]; then
+        out "There is a more recent update of this script - run <<$script_prefix update>> to update"
+      else
+        out "                                                                              "
+      fi
     fi
-  fi
-  # shellcheck disable=SC2164
-  popd &> /dev/null
+    # shellcheck disable=SC2164
+    popd &>/dev/null
   )
 }
 
-update_script_to_latest(){
+function update_script_to_latest() {
   # run in background to avoid problems with modifying a running interpreted script
   (
-  sleep 1
-  cd "$script_install_folder" && git pull
+    sleep 1
+    cd "$script_install_folder" && git pull
   ) &
 }
 
-show_tips() {
+function show_tips() {
   ((sourced)) && return 0
   # shellcheck disable=SC2016
-  grep <"${BASH_SOURCE[0]}" -v '$0' \
-  | awk \
+  grep <"${BASH_SOURCE[0]}" -v '$0' |
+    awk \
       -v green="$col_grn" \
       -v yellow="$col_ylw" \
       -v reset="$col_reset" \
       '
       /TIP: /  {$1=""; gsub(/«/,green); gsub(/»/,reset); print "*" $0}
       /TIP:> / {$1=""; print " " yellow $0 reset}
-      ' \
-  | awk \
+      ' |
+    awk \
       -v script_basename="$script_basename" \
       -v script_prefix="$script_prefix" \
       '{
@@ -853,7 +956,7 @@ show_tips() {
       }'
 }
 
-check_script_settings() {
+function check_script_settings() {
   if [[ -n $(filter_option_type flag) ]]; then
     out "## ${col_grn}boolean flags${col_reset}:"
     filter_option_type flag |
@@ -911,11 +1014,11 @@ check_script_settings() {
   fi
 }
 
-filter_option_type() {
+function filter_option_type() {
   list_options | grep "$1|" | cut -d'|' -f3 | sort | grep -v '^\s*$'
 }
 
-init_options() {
+function init_options() {
   local init_command
   init_command=$(list_options |
     grep -v "verbose|" |
@@ -933,11 +1036,11 @@ init_options() {
   fi
 }
 
-expects_single_params() { list_options | grep 'param|1|' >/dev/null; }
-expects_optional_params() { list_options | grep 'param|?|' >/dev/null; }
-expects_multi_param() { list_options | grep 'param|n|' >/dev/null; }
+function expects_single_params() { list_options | grep 'param|1|' >/dev/null; }
+function expects_optional_params() { list_options | grep 'param|?|' >/dev/null; }
+function expects_multi_param() { list_options | grep 'param|n|' >/dev/null; }
 
-parse_options() {
+function parse_options() {
   if [[ $# -eq 0 ]]; then
     show_usage >&2
     safe_exit
@@ -1048,24 +1151,24 @@ parse_options() {
   fi
 }
 
-require_binary(){
+function require_binary() {
   binary="$1"
   path_binary=$(command -v "$binary" 2>/dev/null)
   [[ -n "$path_binary" ]] && debug "️$require_icon required [$binary] -> $path_binary" && return 0
   #
   words=$(echo "${2:-}" | wc -l)
   case $words in
-    0)  install_instructions="$install_package $1";;
-    1)  install_instructions="$install_package $2";;
-    *)  install_instructions="$2"
+  0) install_instructions="$install_package $1" ;;
+  1) install_instructions="$install_package $2" ;;
+  *) install_instructions="$2" ;;
   esac
   alert "$script_basename needs [$binary] but it cannot be found"
   alert "1) install package  : $install_instructions"
   alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
-  die   "Missing program/script [$binary]"
+  die "Missing program/script [$binary]"
 }
 
-folder_prep() {
+function folder_prep() {
   if [[ -n "$1" ]]; then
     local folder="$1"
     local max_days=${2:-365}
@@ -1079,9 +1182,9 @@ folder_prep() {
   fi
 }
 
-count_words() { wc -w | awk '{ gsub(/ /,""); print}'; }
+function count_words() { wc -w | awk '{ gsub(/ /,""); print}'; }
 
-recursive_readlink() {
+function recursive_readlink() {
   [[ ! -L "$1" ]] && echo "$1" && return 0
   local file_folder
   local link_folder
@@ -1099,7 +1202,7 @@ recursive_readlink() {
   recursive_readlink "$link_folder/$link_name"
 }
 
-lookup_script_data() {
+function lookup_script_data() {
   # shellcheck disable=SC2155
   readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
   # shellcheck disable=SC2155
@@ -1113,7 +1216,7 @@ lookup_script_data() {
   script_install_path=$(recursive_readlink "$script_install_path")
   debug "$info_icon Linked path: $script_install_path"
   # shellcheck disable=SC2155
-  readonly script_install_folder="$( cd -P "$( dirname "$script_install_path" )" && pwd )"
+  readonly script_install_folder="$(cd -P "$(dirname "$script_install_path")" && pwd)"
   debug "$info_icon In folder  : $script_install_folder"
   if [[ -f "$script_install_path" ]]; then
     script_hash=$(hash <"$script_install_path" 8)
@@ -1182,8 +1285,8 @@ lookup_script_data() {
   script_modified="??"
   [[ "$os_kernel" == "Linux" ]] && script_modified=$(stat -c %y "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
   [[ "$os_kernel" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
-  [[ "$os_kernel" == "OpenBSD" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for OpenBSD
-  
+  [[ "$os_kernel" == "OpenBSD" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)         # for OpenBSD
+
   debug "$info_icon Last modif : $script_modified"
   debug "$info_icon Script ID  : $script_lines lines / md5: $script_hash"
   debug "$info_icon Creation   : $script_created"
@@ -1208,7 +1311,7 @@ lookup_script_data() {
   [[ -n "$git_repo_root" ]] && [[ -n "$(git tag &>/dev/null)" ]] && script_version=$(git tag --sort=version:refname | tail -1)
 }
 
-prep_log_and_temp_dir() {
+function prep_log_and_temp_dir() {
   tmp_file=""
   log_file=""
   if [[ -n "${tmp_dir:-}" ]]; then
@@ -1225,7 +1328,7 @@ prep_log_and_temp_dir() {
   fi
 }
 
-import_env_if_any() {
+function import_env_if_any() {
   env_files=("$script_install_folder/.env" "$script_install_folder/$script_prefix.env" "./.env" "./$script_prefix.env")
 
   for env_file in "${env_files[@]}"; do
@@ -1240,11 +1343,11 @@ import_env_if_any() {
 initialise_output  # output settings
 lookup_script_data # find installation folder
 
-[[ $run_as_root == 1  ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
+[[ $run_as_root == 1 ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
 [[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
-init_options       # set default values for flags & options
-import_env_if_any  # overwrite with .env if any
+init_options      # set default values for flags & options
+import_env_if_any # overwrite with .env if any
 
 if [[ $sourced -eq 0 ]]; then
   parse_options "$@"    # overwrite with specified options if any
