@@ -90,7 +90,14 @@ function teardown_test_repo() {
 
 # Run setver command and capture output
 function run_setver() {
-  run bash "$SETVER_SCRIPT" "$@"
+  # On macOS, ensure we use bash 4+ if available (e.g., from Homebrew)
+  local bash_cmd="bash"
+  if [[ -f /usr/local/bin/bash ]]; then
+    bash_cmd="/usr/local/bin/bash"
+  elif [[ -f /opt/homebrew/bin/bash ]]; then
+    bash_cmd="/opt/homebrew/bin/bash"
+  fi
+  run "$bash_cmd" "$SETVER_SCRIPT" "$@"
 }
 
 # Check if a version string is valid semver
