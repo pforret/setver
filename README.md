@@ -10,10 +10,10 @@
 
 ## TL;DR
 ```bash
-# to commit (and ask for message) and push new changes to Github/Bitbucket
+# to commit (and ask for message) and push new changes to GitHub/Bitbucket
 setver push
     
-# to commit with automatic commit message and push new changes to Github/Bitbucket
+# to commit with automatic commit message and push new changes to GitHub/Bitbucket
 setver auto
     
 # to just bump the version 
@@ -34,8 +34,8 @@ setver ap               # stands for autopatch
 
 ## Usage
 ```
-Program: setver 2.3.0 by peter@forret.com
-Updated: Mar 18 16:57:57 2023
+Program: setver 2.4.0 by peter@forret.com
+Updated: Oct 26 16:37:07 2025
 Description: setver but based on bashew
 Usage: setver [-h] [-q] [-v] [-f] [-r] [-C] [-N] [-l <log_dir>] [-t <tmp_dir>] [-p <prefix>] <action> <input?>
 Flags, options and parameters:
@@ -54,26 +54,23 @@ Flags, options and parameters:
                                                                                                              
                                   
 ### TIPS & EXAMPLES
-* use setver get to get the version (returns 1 line with the version nr)
-* use setver check to get all versions available in this repo
-* use setver message to get the current auto-generated commit message
-* use setver auto to do commit/push with auto-generated commit message
-* use setver autopatch or setver ap to do commit/push with auto-generated commit message & bump patch version
-* use setver autominor to do commit/push with auto-generated commit message & bump minor version
-* use setver skip to do commit/push with auto-generated commit message and skip GH actions
-* use setver md to generate a correct VERSION.md file, if it does not yet exist
-* use setver new major/minor/patch to bump version number with 1
-* use setver set x.y.z to set new version number
-* use setver push to do commit/push with auto-generated commit message
-* use setver history to show the git history in a compact format
-* use setver check to check if this script is ready to execute and what values the options/flags are
-  setver check
-* use setver env to generate an example .env file
-  setver env > .env
-* use setver update to update to the latest version
-  setver check
+* use 'setver get' to get the version (returns 1 line with the version nr)
+* use 'setver check' to get all versions available in this repo
+* use 'setver message' to get the current auto-generated commit message
+* use 'setver auto' to do commit/push with auto-generated commit message
+* use 'setver autopatch' or 'setver ap' to do commit/push with auto-generated commit message & bump patch version
+* use 'setver autominor' to do commit/push with auto-generated commit message & bump minor version
+* use 'setver skip' to do commit/push with auto-generated commit message and skip GH actions
+* use 'setver md' to generate a correct VERSION.md file, if it does not yet exist
+* use 'setver set x.y.z' to set new version number
+* use 'setver new major/minor/patch' to bump version number with 1
+* use 'setver bump major/minor/patch' to bump version number with 1
+* use 'setver push' to do commit/push with auto-generated commit message
+* use 'setver history' to show the git history in a compact format
+* use 'setver check' to check if this script is ready to execute and what values the options/flags are
+* use 'setver env' to generate an example .env file (setver env > .env)
+* use 'setver update' to update to the latest version
 * >>> bash script created with pforret/bashew
-* >>> for bash development, also check out pforret/setver and pforret/progressbar
 ```
 
 ## Example:
