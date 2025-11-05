@@ -623,7 +623,9 @@ function def_commit_message() {
     if(length(mod)>0){printf "MOD:" mod}
     print "\n";
     }
-  '
+  ' |
+    awk '{ if (length($0) > 200) print substr($0, 1, 200) "..."; else print }'
+
 }
 
 function commit_and_push() {
