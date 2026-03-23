@@ -667,16 +667,26 @@ function show_history() {
 function push_if_possible() {
   local check_remote=""
   local flags=${1:-}
+  local current_branch=""
+  local has_upstream=""
   outfile="$tmp_dir/${script_prefix}_push.log"
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]]; then
+    current_branch=$(git rev-parse --abbrev-ref HEAD)
+    has_upstream=$(git config --get "branch.${current_branch}.remote" 2>/dev/null || true)
     echo "push to remote [$check_remote]" &>"$outfile"
+    if [[ -z "$has_upstream" ]]; then
+      success "push with upstream setup: git push -u origin $current_branch"
+      git push -u origin "$current_branch" &>>"$outfile" || die "'git push -u origin $current_branch' failed - check $outfile for details"
+    fi
     if [[ "$flags" == "Y" ]]; then
       success "push tags to [$check_remote]"
       git push --tags &>>"$outfile" || die "'git push --tags' failed - check $outfile for details"
     else
-      success "push changes [$check_remote]"
-      git push &>>"$outfile" || die "'git push' failed - check $outfile for details"
+      if [[ -n "$has_upstream" ]]; then
+        success "push changes [$check_remote]"
+        git push &>>"$outfile" || die "'git push' failed - check $outfile for details"
+      fi
     fi
   else
     debug "No remote set - skip git push"
