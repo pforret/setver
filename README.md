@@ -73,6 +73,16 @@ Flags, options and parameters:
 * >>> bash script created with pforret/bashew
 ```
 
+## Smart commit & push helpers
+
+`setver auto`, `setver ap` and `setver push` include a few safety checks before committing:
+
+* **No git repo yet?** If `.git` doesn't exist, setver offers to run `git init && git add .` for you.
+* **Untracked files?** If new files haven't been `git add`'ed yet, setver lists them and offers to stage them before committing.
+* **No upstream branch yet?** If a remote exists but the current branch has no upstream, setver pushes with `git push -u origin <branch>` to set up tracking automatically.
+
+Use `-f|--force` to skip the confirmation prompts.
+
 ## Example:
 
     > setver new patch   
