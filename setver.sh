@@ -634,6 +634,31 @@ function commit_and_push() {
 
   local mode=${1:-}
 
+  # Detect if this is not yet a git repo
+  if [[ ! -d .git ]]; then
+    alert "No .git directory found - this is not a git repository yet"
+    if confirm "Shall I first run 'git init && git add .'?"; then
+      git init || die "'git init' failed"
+      git add . || die "'git add .' failed"
+      success "Initialized git repo and staged all files"
+    else
+      die "Cannot commit/push without a git repository"
+    fi
+  fi
+
+  # Detect untracked files that haven't been staged yet
+  local untracked_files=""
+  untracked_files=$(git ls-files --others --exclude-standard)
+  if [[ -n "$untracked_files" ]]; then
+    alert "Untracked files detected:"
+    echo "$untracked_files" | sed 's/^/  /'
+    if confirm "Shall I 'git add' these files before committing?"; then
+      # shellcheck disable=SC2086
+      echo "$untracked_files" | xargs -r git add || die "'git add' failed"
+      success "Added untracked files"
+    fi
+  fi
+
   local default_message=""
   default_message="$(def_commit_message)"
   debug "Commit message = [$default_message]"
