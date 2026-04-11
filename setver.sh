@@ -617,8 +617,16 @@ function claude_commit_message() {
   if [[ -z "$changed_files" ]]; then
     return 1
   fi
-  local diff_content
-  diff_content=$(git diff HEAD --stat; echo; git diff HEAD)
+  local max_diff_lines=500
+  local diff_stat diff_body diff_lines diff_content
+  diff_stat=$(git diff HEAD --stat)
+  diff_body=$(git diff HEAD)
+  diff_lines=$(echo "$diff_body" | wc -l)
+  if (( diff_lines > max_diff_lines )); then
+    diff_body=$(echo "$diff_body" | head -n "$max_diff_lines")
+    diff_body="${diff_body}"$'\n'"... (diff truncated to $max_diff_lines of $diff_lines lines)"
+  fi
+  diff_content="${diff_stat}"$'\n\n'"${diff_body}"
   local prompt="Generate a concise git commit message (1 line, max 72 chars, imperative mood, no trailing period) for the following changes. Only output the commit message itself, no quotes, no explanation, no prefix.
 
 Changed files:
