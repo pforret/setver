@@ -15,6 +15,7 @@ flag|f|force|do not ask for confirmation
 flag|r|root|do not check if in root folder of repo
 flag|C|SKIP_COMPOSER|do not modify composer.json
 flag|N|SKIP_NPM|do not modify package.json (for npm)
+flag|U|USE_CLAUDE|use Claude CLI to generate commit message
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
 option|p|prefix|prefix to use for git tags|v
@@ -603,7 +604,43 @@ function set_versions() {
   show_repo_url "$remote_url"
 }
 
+function claude_commit_message() {
+  # Generate a commit message using the Claude CLI, based on the current diff.
+  # Falls back to empty string if claude is unavailable or fails - caller should
+  # detect that and use def_commit_message instead.
+  if [[ -z $(command -v claude) ]]; then
+    alert "Claude CLI not found - install it from https://docs.claude.com/claude-code"
+    return 1
+  fi
+  local changed_files
+  changed_files=$(git status --short)
+  if [[ -z "$changed_files" ]]; then
+    return 1
+  fi
+  local diff_content
+  diff_content=$(git diff HEAD --stat; echo; git diff HEAD)
+  local prompt="Generate a concise git commit message (1 line, max 72 chars, imperative mood, no trailing period) for the following changes. Only output the commit message itself, no quotes, no explanation, no prefix.
+
+Changed files:
+$changed_files
+
+Diff:
+$diff_content"
+  # -p runs claude in non-interactive print mode
+  claude -p "$prompt" 2>/dev/null | head -1 | sed 's/^["'\'']//; s/["'\'']$//'
+}
+
 function def_commit_message() {
+  # shellcheck disable=SC2154
+  if ((USE_CLAUDE)); then
+    local claude_msg
+    claude_msg=$(claude_commit_message)
+    if [[ -n "$claude_msg" ]]; then
+      echo "$claude_msg"
+      return
+    fi
+    alert "Claude commit message generation failed - falling back to default"
+  fi
   git status --short |
     sed 's/^ //' |
     awk '

@@ -80,8 +80,14 @@ Flags, options and parameters:
 * **No git repo yet?** If `.git` doesn't exist, setver offers to run `git init && git add .` for you.
 * **Untracked files?** If new files haven't been `git add`'ed yet, setver lists them and offers to stage them before committing.
 * **No upstream branch yet?** If a remote exists but the current branch has no upstream, setver pushes with `git push -u origin <branch>` to set up tracking automatically.
+* **AI-generated commit messages.** Pass `-U|--USE_CLAUDE` to have the [Claude CLI](https://docs.claude.com/claude-code) generate a concise commit message from the diff. Falls back to the default `ADD:/MOD:/DEL:` summary if Claude isn't available.
 
 Use `-f|--force` to skip the confirmation prompts.
+
+```bash
+setver -U auto      # auto-commit with a Claude-generated message
+setver -U ap        # same, plus patch version bump
+```
 
 ## Example:
 
