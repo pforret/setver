@@ -606,12 +606,8 @@ function set_versions() {
 
 function claude_commit_message() {
   # Generate a commit message using the Claude CLI, based on the current diff.
-  # Falls back to empty string if claude is unavailable or fails - caller should
-  # detect that and use def_commit_message instead.
-  if [[ -z $(command -v claude) ]]; then
-    alert "Claude CLI not found - install it from https://docs.claude.com/claude-code"
-    return 1
-  fi
+  # Caller is responsible for checking that 'claude' is on the PATH before
+  # calling this function. Prints the message on stdout, or nothing on failure.
   local changed_files
   changed_files=$(git status --short)
   if [[ -z "$changed_files" ]]; then
@@ -641,13 +637,17 @@ $diff_content"
 function def_commit_message() {
   # shellcheck disable=SC2154
   if ((USE_CLAUDE)); then
-    local claude_msg
-    claude_msg=$(claude_commit_message)
-    if [[ -n "$claude_msg" ]]; then
-      echo "$claude_msg"
-      return
+    if [[ -z $(command -v claude) ]]; then
+      alert "Claude CLI not found - falling back to default commit message (install from https://docs.claude.com/claude-code)" >&2
+    else
+      local claude_msg
+      claude_msg=$(claude_commit_message)
+      if [[ -n "$claude_msg" ]]; then
+        echo "$claude_msg"
+        return
+      fi
+      alert "Claude commit message generation failed - falling back to default commit message" >&2
     fi
-    alert "Claude commit message generation failed - falling back to default"
   fi
   git status --short |
     sed 's/^ //' |
