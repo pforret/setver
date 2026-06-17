@@ -418,12 +418,19 @@ teardown() {
 ##############################################################################
 # These call the script directly (not run_setver) because they must pipe stdin.
 # The temp test repo has no remote, so push_if_possible no-ops and commits stay local.
-# stdin sequence: <type#>, <scope-or-blank>, <breaking y/n>, <description>
+#
+# The type & scope pickers are arrow-key driven. Input bytes:
+#   \n         = Enter (confirm the highlighted option)
+#   \033[C     = right arrow (next option)     \033[D = left arrow (previous option)
+# Picker order (type):  feat fix docs style refactor perf test build ci chore revert
+# Picker order (scope): (none) commit version git changelog cli tests docs
+# After the two pickers come two line-reads: <breaking y/n>, then <description>.
 
 @test "setver -O push - builds 'feat:' message from type selection" {
   echo "change" > newfile.txt
   git add newfile.txt
-  printf '1\n\nn\nadd new file\n' | "$SETVER_SCRIPT" -r -O push
+  # type=feat (Enter), scope=(none) (Enter), breaking=n, description
+  printf '\n\nn\nadd new file\n' | "$SETVER_SCRIPT" -r -O push
   run git log -1 --pretty=%s
   [ "$output" = "feat: add new file" ]
 }
@@ -431,23 +438,35 @@ teardown() {
 @test "setver -O push - includes scope when provided" {
   echo "change" > a.txt
   git add a.txt
-  printf '2\nparser\nn\nhandle leading zeros\n' | "$SETVER_SCRIPT" -r -O push
+  # type=fix (1x right), scope=commit (1x right), breaking=n, description
+  printf '\033[C\n\033[C\nn\nhandle leading zeros\n' | "$SETVER_SCRIPT" -r -O push
   run git log -1 --pretty=%s
-  [ "$output" = "fix(parser): handle leading zeros" ]
+  [ "$output" = "fix(commit): handle leading zeros" ]
 }
 
 @test "setver -O push - adds '!' for breaking change" {
   echo "change" > b.txt
   git add b.txt
-  printf '1\n\ny\nremove legacy api\n' | "$SETVER_SCRIPT" -r -O push
+  # type=feat (Enter), scope=(none) (Enter), breaking=y, description
+  printf '\n\ny\nremove legacy api\n' | "$SETVER_SCRIPT" -r -O push
   run git log -1 --pretty=%s
   [ "$output" = "feat!: remove legacy api" ]
+}
+
+@test "setver -O push - left arrow wraps around to last type" {
+  echo "change" > w.txt
+  git add w.txt
+  # type=revert (1x left wraps from feat), scope=(none), breaking=n, description
+  printf '\033[D\n\nn\nundo change\n' | "$SETVER_SCRIPT" -r -O push
+  run git log -1 --pretty=%s
+  [ "$output" = "revert: undo change" ]
 }
 
 @test "setver -O skip - appends [skip ci] body" {
   echo "change" > c.txt
   git add c.txt
-  printf '3\n\nn\nupdate readme\n' | "$SETVER_SCRIPT" -r -O skip
+  # type=docs (2x right), scope=(none), breaking=n, description
+  printf '\033[C\033[C\n\nn\nupdate readme\n' | "$SETVER_SCRIPT" -r -O skip
   run git log -1 --pretty=%B
   [[ "$output" =~ "docs: update readme" ]]
   [[ "$output" =~ "[skip ci]" ]]
@@ -456,7 +475,7 @@ teardown() {
 @test "setver -O push - suggests 'new minor' after a feat commit" {
   echo "change" > d.txt
   git add d.txt
-  run bash -c "printf '1\n\nn\nadd thing\n' | '$SETVER_SCRIPT' -r -O push"
+  run bash -c "printf '\n\nn\nadd thing\n' | '$SETVER_SCRIPT' -r -O push"
   [ "$status" -eq 0 ]
   [[ "$output" =~ "new minor" ]]
 }
@@ -464,7 +483,8 @@ teardown() {
 @test "setver -O skip - does NOT suggest a version bump" {
   echo "change" > e.txt
   git add e.txt
-  run bash -c "printf '2\n\nn\nfix bug\n' | '$SETVER_SCRIPT' -r -O skip"
+  # type=fix (1x right), scope=(none), breaking=n, description
+  run bash -c "printf '\033[C\n\nn\nfix bug\n' | '$SETVER_SCRIPT' -r -O skip"
   [ "$status" -eq 0 ]
   [[ ! "$output" =~ "Next step" ]]
 }

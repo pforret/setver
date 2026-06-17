@@ -630,34 +630,94 @@ function def_commit_message() {
 
 }
 
+function pick_from_list() {
+  # Interactive horizontal picker, navigated with the <- and -> arrow keys, Enter to confirm.
+  # Renders a 2-line UI to STDERR:  line 1 = "opt1 | opt2 | ..." (current highlighted),
+  #                                 line 2 = "<current>: <description of current>".
+  # Prints the chosen value (the label, without its description) to STDOUT.
+  #   $1          = title/prompt shown above the picker
+  #   $2, $3, ... = options, each as "label|description"
+  local title="$1"
+  shift
+  local -a labels=() descs=()
+  local pair
+  for pair in "$@"; do
+    labels+=("${pair%%|*}")
+    descs+=("${pair#*|}")
+  done
+  local n=${#labels[@]}
+  local cur=0 key esc i line1
+  local rev="\033[7m" rst="\033[0m"
+
+  out "$title" >&2
+  out "  (navigate with ${col_grn}<-${col_reset} / ${col_grn}->${col_reset} and press ${col_grn}Enter${col_reset})" >&2
+  printf '\033[?25l' >&2 # hide cursor
+
+  while true; do
+    line1=""
+    for ((i = 0; i < n; i++)); do
+      if [[ $i -eq $cur ]]; then
+        line1+="$rev ${labels[i]} $rst"
+      else
+        line1+=" ${labels[i]} "
+      fi
+      [[ $i -lt $((n - 1)) ]] && line1+="|"
+    done
+    # draw line 1 (options) + line 2 (description of current); cursor ends on line 2
+    printf '\r\033[K%b\r\n\033[K%b' "$line1" "${col_grn}${labels[cur]}${col_reset}: ${descs[cur]}" >&2
+
+    IFS= read -rsn1 key || break
+    if [[ "$key" == $'\033' ]]; then
+      read -rsn2 esc
+      case "$esc" in
+      '[C' | 'OC') ((cur = (cur + 1) % n)) ;;     # right arrow
+      '[D' | 'OD') ((cur = (cur - 1 + n) % n)) ;; # left arrow
+      esac
+    elif [[ -z "$key" ]]; then
+      break # Enter
+    fi
+    printf '\033[1A\r' >&2 # move back up to line 1 to redraw
+  done
+
+  printf '\033[?25h\r\n' >&2 # show cursor again, move below the picker
+  echo "${labels[cur]}"
+}
+
 function conventional_commit_message() {
   # Build a Conventional Commits (https://www.conventionalcommits.org/en/v1.0.0/) header.
   # Prompts go to STDERR; only the final "type(scope): description" line goes to STDOUT,
   # because the caller captures stdout via $(...).
   local ctype="" scope="" descr="" bang="" header=""
-  local -a types=(feat fix docs style refactor perf test build ci chore revert)
 
   # 1. show changed files
   out "${col_grn}Changed files:${col_reset}" >&2
   git status --short >&2
 
-  # 2. pick the commit type from a numbered list
-  out "Select the commit ${col_grn}type${col_reset}:" >&2
-  local PS3="type # > "
-  local opt
-  select opt in "${types[@]}"; do
-    if [[ -n "$opt" ]]; then
-      ctype="$opt"
-      break
-    fi
-    alert "invalid choice, try again" >&2
-  done
+  # 2. pick the commit type with the arrow-key picker
+  ctype="$(pick_from_list "Select the commit type:" \
+    "feat|a new feature (-> setver new minor)" \
+    "fix|a bug fix (-> setver new patch)" \
+    "docs|documentation only changes" \
+    "style|formatting; no code behaviour change" \
+    "refactor|neither fixes a bug nor adds a feature" \
+    "perf|a change that improves performance" \
+    "test|adding or correcting tests" \
+    "build|build system or external dependencies" \
+    "ci|CI configuration files and scripts" \
+    "chore|other changes (no src or test files)" \
+    "revert|reverts a previous commit")"
 
-  # 3. optional scope (free text; examples shown to guide a consistent vocabulary)
-  out "scope = the area of the codebase touched (optional)." >&2
-  out "  examples: ${col_grn}commit version git changelog cli tests docs ci${col_reset}" >&2
-  read -r -p "scope (leave blank for none) > " scope >&2 || true
-  scope="${scope// /}" # no spaces allowed in scope
+  # 3. pick an optional scope with the same picker ("(none)" leaves it out)
+  scope="$(pick_from_list "Select the scope (area of the codebase touched):" \
+    "(none)|no specific scope" \
+    "commit|commit message handling" \
+    "version|version detection and bumping" \
+    "git|git operations (commit/push/tag)" \
+    "changelog|CHANGELOG handling" \
+    "cli|command-line interface / options" \
+    "tests|test suite" \
+    "docs|documentation")"
+  [[ "$scope" == "(none)" ]] && scope=""
 
   # 4. optional breaking change marker
   #    Use a RAW read (not confirm()) so this ALWAYS asks, even under --force.
