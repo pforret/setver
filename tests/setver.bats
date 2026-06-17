@@ -412,3 +412,59 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" =~ "Usage:" ]] || [[ "$output" =~ "TIPS" ]]
 }
+
+##############################################################################
+# Conventional Commits (-O / --CONVENTIONAL) Tests
+##############################################################################
+# These call the script directly (not run_setver) because they must pipe stdin.
+# The temp test repo has no remote, so push_if_possible no-ops and commits stay local.
+# stdin sequence: <type#>, <scope-or-blank>, <breaking y/n>, <description>
+
+@test "setver -O push - builds 'feat:' message from type selection" {
+  echo "change" > newfile.txt
+  git add newfile.txt
+  printf '1\n\nn\nadd new file\n' | "$SETVER_SCRIPT" -r -O push
+  run git log -1 --pretty=%s
+  [ "$output" = "feat: add new file" ]
+}
+
+@test "setver -O push - includes scope when provided" {
+  echo "change" > a.txt
+  git add a.txt
+  printf '2\nparser\nn\nhandle leading zeros\n' | "$SETVER_SCRIPT" -r -O push
+  run git log -1 --pretty=%s
+  [ "$output" = "fix(parser): handle leading zeros" ]
+}
+
+@test "setver -O push - adds '!' for breaking change" {
+  echo "change" > b.txt
+  git add b.txt
+  printf '1\n\ny\nremove legacy api\n' | "$SETVER_SCRIPT" -r -O push
+  run git log -1 --pretty=%s
+  [ "$output" = "feat!: remove legacy api" ]
+}
+
+@test "setver -O skip - appends [skip ci] body" {
+  echo "change" > c.txt
+  git add c.txt
+  printf '3\n\nn\nupdate readme\n' | "$SETVER_SCRIPT" -r -O skip
+  run git log -1 --pretty=%B
+  [[ "$output" =~ "docs: update readme" ]]
+  [[ "$output" =~ "[skip ci]" ]]
+}
+
+@test "setver -O push - suggests 'new minor' after a feat commit" {
+  echo "change" > d.txt
+  git add d.txt
+  run bash -c "printf '1\n\nn\nadd thing\n' | '$SETVER_SCRIPT' -r -O push"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "new minor" ]]
+}
+
+@test "setver -O skip - does NOT suggest a version bump" {
+  echo "change" > e.txt
+  git add e.txt
+  run bash -c "printf '2\n\nn\nfix bug\n' | '$SETVER_SCRIPT' -r -O skip"
+  [ "$status" -eq 0 ]
+  [[ ! "$output" =~ "Next step" ]]
+}

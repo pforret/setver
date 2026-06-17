@@ -15,6 +15,7 @@ flag|f|force|do not ask for confirmation
 flag|r|root|do not check if in root folder of repo
 flag|C|SKIP_COMPOSER|do not modify composer.json
 flag|N|SKIP_NPM|do not modify package.json (for npm)
+flag|O|CONVENTIONAL|build a Conventional Commits message interactively
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
 option|p|prefix|prefix to use for git tags|v
@@ -104,6 +105,7 @@ function main() {
     ;;
 
     #TIP: use «$script_prefix push» to do commit/push with auto-generated commit message
+    #TIP: use «$script_prefix -O push» to commit/push with an interactive Conventional Commits message
   push | commit | github)
     commit_and_push
     ;;
@@ -628,6 +630,88 @@ function def_commit_message() {
 
 }
 
+function conventional_commit_message() {
+  # Build a Conventional Commits (https://www.conventionalcommits.org/en/v1.0.0/) header.
+  # Prompts go to STDERR; only the final "type(scope): description" line goes to STDOUT,
+  # because the caller captures stdout via $(...).
+  local ctype="" scope="" descr="" bang="" header=""
+  local -a types=(feat fix docs style refactor perf test build ci chore revert)
+
+  # 1. show changed files
+  out "${col_grn}Changed files:${col_reset}" >&2
+  git status --short >&2
+
+  # 2. pick the commit type from a numbered list
+  out "Select the commit ${col_grn}type${col_reset}:" >&2
+  local PS3="type # > "
+  local opt
+  select opt in "${types[@]}"; do
+    if [[ -n "$opt" ]]; then
+      ctype="$opt"
+      break
+    fi
+    alert "invalid choice, try again" >&2
+  done
+
+  # 3. optional scope (free text; examples shown to guide a consistent vocabulary)
+  out "scope = the area of the codebase touched (optional)." >&2
+  out "  examples: ${col_grn}commit version git changelog cli tests docs ci${col_reset}" >&2
+  read -r -p "scope (leave blank for none) > " scope >&2 || true
+  scope="${scope// /}" # no spaces allowed in scope
+
+  # 4. optional breaking change marker
+  #    Use a RAW read (not confirm()) so this ALWAYS asks, even under --force.
+  #    confirm() auto-returns true under --force, which would wrongly mark every commit breaking.
+  local is_breaking=""
+  read -r -p "Is this a BREAKING CHANGE? [y/N] > " is_breaking >&2 || true
+  [[ "$is_breaking" =~ ^[Yy] ]] && bang="!"
+
+  # 5. description (required, then light-normalized per Conventional Commits style)
+  while [[ -z "$descr" ]]; do
+    read -r -p "short description > " descr >&2 || true
+  done
+  descr="${descr#"${descr%%[![:space:]]*}"}" # trim leading whitespace
+  descr="${descr%"${descr##*[![:space:]]}"}" # trim trailing whitespace
+  descr="${descr%.}"                          # strip a single trailing period
+  if [[ ${#descr} -gt 50 ]]; then
+    alert "description is ${#descr} chars (>50) — consider shortening (not blocking)" >&2
+  fi
+
+  # 6. assemble the header
+  header="$ctype"
+  [[ -n "$scope" ]] && header="$header($scope)"
+  header="$header$bang: $descr"
+  echo "$header"
+}
+
+function suggest_next_version_bump() {
+  # $1 = conventional commit header, e.g. "feat(api)!: ..."  or  "fix: ..."
+  # Maps Conventional Commits -> semver and prints the suggested `setver new <bump>` command.
+  local header="$1" prefix="" ctype="" bump="" reason=""
+  prefix="${header%%:*}" # everything before the first ":" → "feat(api)!"
+  if [[ "$prefix" == *"!" ]]; then
+    bump="major"
+    reason="breaking change"
+  else
+    ctype="${prefix%%[(!]*}" # strip scope/bang → "feat"
+    case "$ctype" in
+    feat)
+      bump="minor"
+      reason="new feature"
+      ;;
+    fix)
+      bump="patch"
+      reason="bug fix"
+      ;;
+    *)
+      bump="patch"
+      reason="$ctype change"
+      ;;
+    esac
+  fi
+  success "Next step: ${col_grn}$script_prefix new $bump${col_reset}  ($reason)"
+}
+
 function commit_and_push() {
   set +e
   trap - INT TERM EXIT
@@ -657,6 +741,26 @@ function commit_and_push() {
       echo "$untracked_files" | xargs -r git add || die "'git add' failed"
       success "Added untracked files"
     fi
+  fi
+
+  # shellcheck disable=SC2154
+  if flag_set "$CONVENTIONAL"; then
+    local conv_message=""
+    conv_message="$(conventional_commit_message)"
+    [[ -z "$conv_message" ]] && die "empty conventional commit message"
+    case "$mode" in
+    skip-ci | skipci)
+      success "Commit: $conv_message [skip ci]"
+      git commit -a -m "$conv_message" -m "[skip ci]" && push_if_possible
+      ;;
+    *)
+      # push / auto / "" : commit, push, then suggest the matching version bump
+      success "Commit: $conv_message"
+      git commit -a -m "$conv_message" && push_if_possible
+      suggest_next_version_bump "$conv_message"
+      ;;
+    esac
+    return
   fi
 
   local default_message=""

@@ -75,6 +75,7 @@ The script can read and update versions from:
 - `-r|--root`: Don't check if in git repo root
 - `-C|--SKIP_COMPOSER`: Skip composer.json updates
 - `-N|--SKIP_NPM`: Skip package.json updates
+- `-O|--CONVENTIONAL`: Build a Conventional Commits message interactively (type/scope/breaking/description), and suggest the matching `setver new patch/minor/major` after `push`/`auto`
 - `-v|--verbose`: Enable verbose output
 - `-q|--quiet`: Suppress output
 
