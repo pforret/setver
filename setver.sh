@@ -19,7 +19,7 @@ flag|O|CONVENTIONAL|build a Conventional Commits message interactively
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
 option|p|prefix|prefix to use for git tags|v
-param|1|action|action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/skip/changelog/history
+param|1|action|action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/autominor/am/automajor/aM/skip/changelog/history
 param|?|input|input text
 " | grep -v '^#' | grep -v '^\s*$'
 }
@@ -48,6 +48,18 @@ function main() {
   dirname="$(dirname "$0")"
   [[ -f "./$dirname.sh" ]] && uses_sh=1
 
+  # when >0, push_if_possible() becomes a no-op so that combined commands
+  # (autopatch/autominor/automajor) can do a single git push at the very end
+  SETVER_DEFER_PUSH=0
+
+  # case-sensitive short aliases: 'am' (autominor) and 'aM' (automajor) only
+  # differ in case, so they must be resolved before the lower-cased case below
+  case "$action" in
+  ap) action="autopatch" ;;
+  am) action="autominor" ;;
+  aM) action="automajor" ;;
+  esac
+
   # shellcheck disable=SC2154
   case "${action,,}" in
   #TIP: use «$script_prefix get» to get the version (returns 1 line with the version nr)
@@ -72,14 +84,29 @@ function main() {
 
   #TIP: use «$script_prefix autopatch» or «$script_prefix ap» to do commit/push with auto-generated commit message & bump patch version
   autopatch | ap)
+    SETVER_DEFER_PUSH=1
     commit_and_push auto
     set_versions patch
+    SETVER_DEFER_PUSH=0
+    push_all_once
     ;;
 
-  #TIP: use «$script_prefix autominor» to do commit/push with auto-generated commit message & bump minor version
-  autominor)
+  #TIP: use «$script_prefix autominor» or «$script_prefix am» to do commit/push with auto-generated commit message & bump minor version
+  autominor | am)
+    SETVER_DEFER_PUSH=1
     commit_and_push auto
     set_versions minor
+    SETVER_DEFER_PUSH=0
+    push_all_once
+    ;;
+
+  #TIP: use «$script_prefix automajor» or «$script_prefix aM» to do commit/push with auto-generated commit message & bump major version
+  automajor | aM)
+    SETVER_DEFER_PUSH=1
+    commit_and_push auto
+    set_versions major
+    SETVER_DEFER_PUSH=0
+    push_all_once
     ;;
 
   #TIP: use «$script_prefix skip» to do commit/push with auto-generated commit message and skip GH actions
@@ -853,7 +880,31 @@ function show_history() {
     more
 }
 
+function push_all_once() {
+  # Push commits AND tags to the remote in a single 'git push' invocation.
+  # Used by the combined commands (autopatch/autominor/automajor) so that only
+  # 1 push reaches the remote and only 1 GitHub CI process gets triggered,
+  # instead of the separate commit-push and tag-push that would happen otherwise.
+  local check_remote="" current_branch="" outfile=""
+  outfile="$tmp_dir/${script_prefix}_push.log"
+  check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
+  if [[ -z "$check_remote" ]]; then
+    debug "No remote set - skip git push"
+    return 0
+  fi
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
+  success "push commits and tags to [$check_remote] in a single push"
+  git push -u origin "$current_branch" --tags &>"$outfile" ||
+    die "'git push -u origin $current_branch --tags' failed - check $outfile for details"
+}
+
 function push_if_possible() {
+  # When a combined command has deferred pushing, skip here and let
+  # push_all_once() do a single push at the end (1 CI trigger instead of 3)
+  if [[ ${SETVER_DEFER_PUSH:-0} -gt 0 ]]; then
+    debug "push deferred - will push once at the end"
+    return 0
+  fi
   local check_remote=""
   local flags=${1:-}
   local current_branch=""
