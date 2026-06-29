@@ -35,8 +35,8 @@ The script can read and update versions from:
 ### Git Operations
 - `./setver auto` - Auto-commit with an auto-generated message and push to remote
 - `./setver autopatch` or `./setver ap` - Auto-commit, bump patch version, then push commits & tags in a single push (1 CI run)
-- `./setver autominor` or `./setver am` - Auto-commit, bump minor version, then push commits & tags in a single push (1 CI run)
-- `./setver automajor` or `./setver aM` - Auto-commit, bump major version, then push commits & tags in a single push (1 CI run)
+- `./setver autominor` - Auto-commit, bump minor version, then push commits & tags in a single push (1 CI run)
+- `./setver automajor` - Auto-commit, bump major version, then push commits & tags in a single push (1 CI run)
 - `./setver push` - Commit and push changes
 - `./setver skip` - Commit with [skip ci] flag
 

@@ -59,8 +59,8 @@ Flags, options and parameters:
 * use 'setver message' to get the current auto-generated commit message
 * use 'setver auto' to do commit/push with auto-generated commit message
 * use 'setver autopatch' or 'setver ap' to do commit/push with auto-generated commit message & bump patch version
-* use 'setver autominor' or 'setver am' to do commit/push with auto-generated commit message & bump minor version
-* use 'setver automajor' or 'setver aM' to do commit/push with auto-generated commit message & bump major version
+* use 'setver autominor' to do commit/push with auto-generated commit message & bump minor version
+* use 'setver automajor' to do commit/push with auto-generated commit message & bump major version
 * use 'setver skip' to do commit/push with auto-generated commit message and skip GH actions
 * use 'setver md' to generate a correct VERSION.md file, if it does not yet exist
 * use 'setver set x.y.z' to set new version number
@@ -84,7 +84,7 @@ Flags, options and parameters:
 
 Use `-f|--force` to skip the confirmation prompts.
 
-The combined commands `setver ap`/`autopatch`, `setver am`/`autominor` and `setver aM`/`automajor` commit the code changes, bump the version and create the git tag, then do a **single** `git push` of commits and tags together at the very end — so they trigger only 1 CI/CD run instead of one per intermediate push.
+The combined commands `setver ap`/`autopatch`, `setver autominor` and `setver automajor` commit the code changes, bump the version and create the git tag, then do a **single** `git push` of commits and tags together at the very end — so they trigger only 1 CI/CD run instead of one per intermediate push.
 
 ## Conventional Commits messages
 

@@ -19,7 +19,7 @@ flag|O|CONVENTIONAL|build a Conventional Commits message interactively
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
 option|p|prefix|prefix to use for git tags|v
-param|1|action|action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/autominor/am/automajor/aM/skip/changelog/history
+param|1|action|action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/autominor/automajor/skip/changelog/history
 param|?|input|input text
 " | grep -v '^#' | grep -v '^\s*$'
 }
@@ -52,14 +52,6 @@ function main() {
   # (autopatch/autominor/automajor) can do a single git push at the very end
   SETVER_DEFER_PUSH=0
 
-  # case-sensitive short aliases: 'am' (autominor) and 'aM' (automajor) only
-  # differ in case, so they must be resolved before the lower-cased case below
-  case "$action" in
-  ap) action="autopatch" ;;
-  am) action="autominor" ;;
-  aM) action="automajor" ;;
-  esac
-
   # shellcheck disable=SC2154
   case "${action,,}" in
   #TIP: use «$script_prefix get» to get the version (returns 1 line with the version nr)
@@ -91,8 +83,8 @@ function main() {
     push_all_once
     ;;
 
-  #TIP: use «$script_prefix autominor» or «$script_prefix am» to do commit/push with auto-generated commit message & bump minor version
-  autominor | am)
+  #TIP: use «$script_prefix autominor» to do commit/push with auto-generated commit message & bump minor version
+  autominor)
     SETVER_DEFER_PUSH=1
     commit_and_push auto
     set_versions minor
@@ -100,8 +92,8 @@ function main() {
     push_all_once
     ;;
 
-  #TIP: use «$script_prefix automajor» or «$script_prefix aM» to do commit/push with auto-generated commit message & bump major version
-  automajor | aM)
+  #TIP: use «$script_prefix automajor» to do commit/push with auto-generated commit message & bump major version
+  automajor)
     SETVER_DEFER_PUSH=1
     commit_and_push auto
     set_versions major

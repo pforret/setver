@@ -122,11 +122,10 @@ teardown() {
 }
 
 ##############################################################################
-# Combined auto-commit + bump tests (ap/am/aM, single push at the end)
+# Combined auto-commit + bump tests (ap/autominor/automajor, single push)
 ##############################################################################
 # The temp test repo has no remote, so push_all_once()/push_if_possible() no-op
-# and commits/tags stay local. These verify the bump type and that the short
-# aliases (am/aM) resolve case-sensitively before the lower-cased action match.
+# and commits/tags stay local. These verify the bump type for each command.
 
 @test "setver ap - autopatch bumps patch" {
   create_version_file "1.2.3"
@@ -152,18 +151,6 @@ teardown() {
   [ "$(get_version_from_file)" = "1.3.0" ]
 }
 
-@test "setver am - alias for autominor, bumps minor" {
-  create_version_file "1.2.3"
-  echo "code" > app.txt
-  git add app.txt && git commit -m "add app" >/dev/null 2>&1
-  echo "change" >> app.txt
-
-  run_setver am
-  [ "$status" -eq 0 ]
-  [[ "$output" =~ "1.2.3 -> 1.3.0" ]]
-  [ "$(get_version_from_file)" = "1.3.0" ]
-}
-
 @test "setver automajor - bumps major" {
   create_version_file "1.2.3"
   echo "code" > app.txt
@@ -171,18 +158,6 @@ teardown() {
   echo "change" >> app.txt
 
   run_setver automajor
-  [ "$status" -eq 0 ]
-  [[ "$output" =~ "1.2.3 -> 2.0.0" ]]
-  [ "$(get_version_from_file)" = "2.0.0" ]
-}
-
-@test "setver aM - alias for automajor, bumps major (not minor)" {
-  create_version_file "1.2.3"
-  echo "code" > app.txt
-  git add app.txt && git commit -m "add app" >/dev/null 2>&1
-  echo "change" >> app.txt
-
-  run_setver aM
   [ "$status" -eq 0 ]
   [[ "$output" =~ "1.2.3 -> 2.0.0" ]]
   [ "$(get_version_from_file)" = "2.0.0" ]

@@ -6,8 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- `autopatch`/`ap`, `autominor`/`am` and `automajor`/`aM` now commit, tag and push in a single `git push` at the end, so they trigger only 1 CI run instead of one per intermediate push
-- add `am`/`autominor` and `aM`/`automajor` short aliases
+- `autopatch`/`ap`, `autominor` and `automajor` now commit, tag and push in a single `git push` at the end, so they trigger only 1 CI run instead of one per intermediate push
+- add `automajor` command
 
 ## [2.3.2] - 2023-04-22
 ### Added/changed
