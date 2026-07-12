@@ -40,6 +40,15 @@ The script can read and update versions from:
 - `./setver push` - Commit and push changes
 - `./setver skip` - Commit with [skip ci] flag
 
+### Prepared Releases (`setver prep`)
+For preparing a big major/minor release as a single publish event. While a prep is active (marker file `.setver-prep` present at repo root), **all git tags are hard-suppressed** so half-finished versions never become installable via Packagist/etc.
+- `./setver prep major` / `./setver prep minor` - Start a prepared release on a `prep-v<target>` branch; sets version files to the clean target, commits the marker, suppresses tags
+- `./setver prep finish` - Release the single real tag (clean target by default; `--keep-version` keeps the drifted number, `--no-ff` merges the prep branch locally first). Runs on the base branch after the prep is merged; pushes commits + tag in one push
+- `./setver prep pause [--stash]` / `./setver prep resume` - Step off / back onto the prep branch, remembering where you were (local session file `.git/setver-prep-session`)
+- `./setver prep status` - Show target, suppression state, and how far the base branch has moved
+- `./setver prep abort` - Cancel the prep and delete its branch
+- Tag suppression is enforced at a single choke point (`prep_block_tag` in `commit_and_tag_version`, plus guards in `push_if_possible`/`push_all_once`), so no command path (`new`/`set`/`ap`/`autominor`/`automajor`) can bypass it.
+
 ### Utilities
 - `./setver md` - Create VERSION.md file if it doesn't exist
 - `./setver message` - Show the auto-generated message for current changes

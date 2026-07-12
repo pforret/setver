@@ -103,7 +103,7 @@ if [[ $VERBOSE -eq 1 ]]; then
   BATS_CMD="$BATS_CMD --trace"
 fi
 
-BATS_CMD="$BATS_CMD \"$SCRIPT_DIR/setver.bats\""
+BATS_CMD="$BATS_CMD \"$SCRIPT_DIR/setver.bats\" \"$SCRIPT_DIR/prep.bats\""
 
 # Run tests
 echo "🚀 Running tests..."

@@ -19,8 +19,9 @@ flag|O|CONVENTIONAL|build a Conventional Commits message interactively
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
 option|p|prefix|prefix to use for git tags|v
-param|1|action|action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/autominor/automajor/skip/changelog/history
-param|?|input|input text
+param|1|action|action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/autominor/automajor/prep/skip/changelog/history
+param|?|input|input text (or prep sub-action: major/minor/finish/pause/resume/status/abort)
+param|?|input2|optional modifier for 'prep' (e.g. --keep-version, --no-ff, --stash)
 " | grep -v '^#' | grep -v '^\s*$'
 }
 
@@ -99,6 +100,14 @@ function main() {
     set_versions major
     SETVER_DEFER_PUSH=0
     push_all_once
+    ;;
+
+  #TIP: use «$script_prefix prep major» or «$script_prefix prep minor» to start a prepared release (git tags stay suppressed until you finish)
+  #TIP: use «$script_prefix prep finish» to create the single release tag once the prepared work is merged onto the base branch
+  #TIP: use «$script_prefix prep status/pause/resume/abort» to inspect or manage a prepared release
+  prep)
+    # shellcheck disable=SC2154
+    do_prep "$input" "$input2"
     ;;
 
   #TIP: use «$script_prefix skip» to do commit/push with auto-generated commit message and skip GH actions
@@ -377,6 +386,10 @@ function check_versions() {
   local version_sh
   success "$script_prefix check versions:"
 
+  if prep_is_active; then
+    alert "prep mode active → $(prep_target), tags suppressed (finish with '$script_prefix prep finish')"
+  fi
+
   version_tag=$(get_version_tag)
   [[ -n $version_tag ]] && show_version "$version_tag" "git tag"
   version_composer=$(get_version_composer)
@@ -524,6 +537,12 @@ function commit_and_tag_version() {
     alert "'git commit' failed - check $outfile for details"
   # push all files changes
   push_if_possible "N"
+
+  # SINGLE TAG CHOKE POINT: while a prep is active, never create or push a tag.
+  # The version files/commit above still happen; only tagging is suppressed.
+  if prep_block_tag; then
+    return 0
+  fi
 
   outfile="$tmp_dir/set_version.tag.log"
   # shellcheck disable=SC2154
@@ -814,6 +833,7 @@ function commit_and_push() {
   untracked_files=$(git ls-files --others --exclude-standard)
   if [[ -n "$untracked_files" ]]; then
     alert "Untracked files detected:"
+    # shellcheck disable=SC2001 # per-line indent is clearest with sed here
     echo "$untracked_files" | sed 's/^/  /'
     if confirm "Shall I 'git add' these files before committing?"; then
       # shellcheck disable=SC2086
@@ -885,6 +905,14 @@ function push_all_once() {
     return 0
   fi
   current_branch=$(git rev-parse --abbrev-ref HEAD)
+  # Route the combined --tags push through the prep guard too: while a prep is
+  # active, push commits only so no tag ever reaches the remote.
+  if prep_is_active; then
+    success "prep mode active → push commits only (tags suppressed) to [$check_remote]"
+    git push -u origin "$current_branch" &>"$outfile" ||
+      die "'git push -u origin $current_branch' failed - check $outfile for details"
+    return 0
+  fi
   success "push commits and tags to [$check_remote] in a single push"
   git push -u origin "$current_branch" --tags &>"$outfile" ||
     die "'git push -u origin $current_branch --tags' failed - check $outfile for details"
@@ -901,6 +929,12 @@ function push_if_possible() {
   local flags=${1:-}
   local current_branch=""
   local has_upstream=""
+  # Defence in depth: a tag push ("Y") is hard-disabled while a prep is active,
+  # so no code path can bypass the suppression invariant.
+  if [[ "$flags" == "Y" ]] && prep_is_active; then
+    debug "prep mode active → skip tag push"
+    return 0
+  fi
   outfile="$tmp_dir/${script_prefix}_push.log"
   check_remote=$(git remote -v | awk '/\(push\)/ {print $2}')
   if [[ -n "$check_remote" ]]; then
@@ -924,6 +958,416 @@ function push_if_possible() {
     debug "No remote set - skip git push"
   fi
 }
+
+#####################################################################
+## Prepared releases ('setver prep ...')
+#####################################################################
+# A "prep" is a prepared major/minor release. While the committed marker file
+# '.setver-prep' is present at the repo root, setver NEVER creates or pushes a
+# git tag (see prep_block_tag / push_if_possible / push_all_once). The single
+# real tag is created only by 'prep finish', after the marker has been removed.
+
+PREP_MARKER=".setver-prep"
+
+function prep_marker_path() {
+  # committed, shared marker at the repo root - its presence suppresses tags
+  echo "${git_repo_root:-.}/$PREP_MARKER"
+}
+
+function prep_session_path() {
+  # local, personal "where was I" pointer - lives inside .git, never tracked
+  local gitdir
+  gitdir=$(git rev-parse --git-dir 2>/dev/null || echo ".git")
+  echo "$gitdir/setver-prep-session"
+}
+
+function prep_is_active() {
+  # the core invariant switch: true when a prep marker exists at the repo root
+  [[ -f "$(prep_marker_path)" ]]
+}
+
+function prep_read() {
+  # echo the value of a KEY from the marker file (empty if absent)
+  local key="$1"
+  prep_is_active || { echo ""; return 0; }
+  grep -E "^$key=" "$(prep_marker_path)" 2>/dev/null | head -1 | cut -d= -f2-
+}
+
+function prep_target() {
+  prep_read SETVER_PREP_TARGET
+}
+
+function prep_block_tag() {
+  # Called at the single tag choke point. Returns 0 (=block) when a prep is
+  # active, after printing the suppression notice; returns 1 otherwise.
+  if prep_is_active; then
+    alert "prep mode active → preparing $(prep_target), tag NOT created/pushed (use '$script_prefix prep finish' to release)"
+    return 0
+  fi
+  return 1
+}
+
+function prep_compute_target() {
+  # $1 = current semver, $2 = level (major|minor)  → echoes "<target> <branch>"
+  local current="$1" level="$2" M m
+  M=$(echo "$current" | cut -d. -f1)
+  m=$(echo "$current" | cut -d. -f2)
+  case "$level" in
+  major) echo "$((M + 1)).0.0 prep-v$((M + 1))" ;;
+  minor) echo "$M.$((m + 1)).0 prep-v$M.$((m + 1))" ;;
+  *) die "prep level must be 'major' or 'minor'" ;;
+  esac
+}
+
+function prep_branch_name() {
+  # $1 = target version, $2 = level  → echoes the prep branch name
+  local target="$1" level="$2" M m
+  M=$(echo "$target" | cut -d. -f1)
+  m=$(echo "$target" | cut -d. -f2)
+  case "$level" in
+  minor) echo "prep-v$M.$m" ;;
+  *) echo "prep-v$M" ;;
+  esac
+}
+
+function prep_find_branches() {
+  # echo local branches whose tree carries a committed .setver-prep marker
+  local b
+  git for-each-ref --format='%(refname:short)' refs/heads/ | while read -r b; do
+    git cat-file -e "$b:$PREP_MARKER" 2>/dev/null && echo "$b"
+  done
+}
+
+function do_prep() {
+  # dispatch 'setver prep <sub> [modifier]'
+  local sub="${1:-}" opt="${2:-}"
+  case "${sub,,}" in
+  major | minor) prep_start "${sub,,}" ;;
+  finish) prep_finish "$opt" ;;
+  pause) prep_pause "$opt" ;;
+  resume) prep_resume ;;
+  status) prep_status ;;
+  abort) prep_abort ;;
+  patch) die "'prep patch' is not supported — a patch doesn't need a prepared branch; use '$script_prefix ap' instead" ;;
+  "") die "prep needs a sub-action: major/minor/finish/pause/resume/status/abort" ;;
+  *) die "unknown prep sub-action [$sub] — use major/minor/finish/pause/resume/status/abort" ;;
+  esac
+}
+
+function prep_start() {
+  # 'setver prep major|minor' — begin a prepared release on a fresh prep branch
+  local level="$1"
+  local current target branch base base_commit created
+
+  prep_is_active &&
+    die "a prep is already active — see '$script_prefix prep status' (or '$script_prefix prep abort' to cancel it)"
+
+  if [[ -n "$(git status -s)" ]] && ! flag_set "$force"; then
+    die "commit or stash your changes before starting a prep"
+  fi
+
+  current=$(get_any_version)
+  # NOTE: this script sets IFS=$'\n\t' (strict mode), so read won't split on
+  # spaces by default — force a space IFS just for this split.
+  IFS=' ' read -r target branch < <(prep_compute_target "$current" "$level")
+
+  base=$(git rev-parse --abbrev-ref HEAD)
+  base_commit=$(git rev-parse --short HEAD)
+  created=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+  if git show-ref --verify --quiet "refs/heads/$branch"; then
+    if flag_set "$force"; then
+      git checkout "$branch" >/dev/null 2>&1 || die "could not switch to existing branch [$branch]"
+    else
+      die "branch [$branch] already exists — use -f to reuse it, or '$script_prefix prep abort' first"
+    fi
+  else
+    git checkout -b "$branch" >/dev/null 2>&1 || die "could not create branch [$branch]"
+  fi
+
+  {
+    echo "SETVER_PREP_TARGET=$target"
+    echo "SETVER_PREP_LEVEL=$level"
+    echo "SETVER_PREP_BASE=$base"
+    echo "SETVER_PREP_BASE_COMMIT=$base_commit"
+    echo "SETVER_PREP_CREATED=$created"
+  } >"$(prep_marker_path)"
+  git add "$(prep_marker_path)"
+
+  # set the version files to the clean target - the tag path stays blocked
+  update_version_files "$target"
+
+  git commit -m "chore(prep): start preparing v$target (tags suppressed)" >/dev/null 2>&1 ||
+    alert "'git commit' failed while starting prep - check 'git status'"
+
+  success "prep started → preparing v$target ($level)"
+  out "  branch : $branch  (from $base @ $base_commit)"
+  out "  tags   : suppressed until '$script_prefix prep finish'"
+  out "  next   : develop as usual; '$script_prefix ap' bumps dev versions without tagging, then merge & '$script_prefix prep finish'"
+
+  flag_set "$force" && prep_push_branch "$branch"
+}
+
+function prep_push_branch() {
+  local branch="$1"
+  git remote get-url origin >/dev/null 2>&1 || return 0
+  if git push -u origin "$branch" >/dev/null 2>&1; then
+    success "pushed prep branch [$branch]"
+  else
+    alert "could not push prep branch [$branch]"
+  fi
+}
+
+function prep_finish() {
+  # 'setver prep finish' — turn the prepared work into the single real release
+  local opt="${1:-}"
+  local keep_version=0 no_ff=0
+  case "$opt" in
+  --keep-version | --keep_version) keep_version=1 ;;
+  --no-ff | --no_ff) no_ff=1 ;;
+  "") : ;;
+  *) die "unknown option for 'prep finish' [$opt] — use --keep-version or --no-ff" ;;
+  esac
+
+  prep_is_active || die "not in prep mode — nothing to finish"
+
+  local target level base prep_branch current_branch
+  target=$(prep_read SETVER_PREP_TARGET)
+  level=$(prep_read SETVER_PREP_LEVEL)
+  base=$(prep_read SETVER_PREP_BASE)
+  prep_branch=$(prep_branch_name "$target" "$level")
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+  if [[ "$current_branch" != "$base" ]]; then
+    if flag_set "$force"; then
+      alert "finishing prep from [$current_branch], expected base [$base] (forced)"
+    else
+      die "run 'prep finish' on the base branch [$base] (currently on [$current_branch]); use -f to override"
+    fi
+  fi
+
+  # the prep work must be merged: its tip must be an ancestor of HEAD
+  if git show-ref --verify --quiet "refs/heads/$prep_branch"; then
+    if ! git merge-base --is-ancestor "$prep_branch" HEAD; then
+      if ((no_ff)); then
+        announce "merging prep branch [$prep_branch] into [$current_branch]"
+        git merge --no-ff -m "chore(prep): merge $prep_branch" "$prep_branch" >/dev/null 2>&1 ||
+          die "merge of [$prep_branch] failed — resolve conflicts, then run 'prep finish' again"
+      elif flag_set "$force"; then
+        alert "prep branch [$prep_branch] not merged into [$current_branch] (forced)"
+      else
+        die "prep branch [$prep_branch] is not merged into [$current_branch] — merge the PR first (or use --no-ff to merge locally, or -f)"
+      fi
+    fi
+  else
+    debug "prep branch [$prep_branch] not found locally — assuming already merged"
+  fi
+
+  local version
+  if ((keep_version)); then
+    version=$(get_any_version)
+    success "releasing drifted version $version (--keep-version)"
+  else
+    version="$target"
+    success "releasing clean target v$version"
+  fi
+
+  update_version_files "$version"
+
+  # remove the marker (this exits prep mode) and stage its deletion
+  git rm -f --quiet "$(prep_marker_path)" >/dev/null 2>&1 || rm -f "$(prep_marker_path)"
+
+  local release_msg="chore(release): v$version"
+  if flag_set "$CONVENTIONAL"; then
+    local conv_message=""
+    conv_message="$(conventional_commit_message)"
+    [[ -n "$conv_message" ]] && release_msg="$conv_message"
+  fi
+  git commit -m "$release_msg" >/dev/null 2>&1 ||
+    alert "'git commit' failed for release - check 'git status'"
+
+  # marker is gone → the tag path is unblocked; tag + push commits & tag together
+  # shellcheck disable=SC2154
+  git tag "$prefix$version" >/dev/null 2>&1 || alert "'git tag' failed for $prefix$version"
+  success "set git version tag: $prefix$version"
+  push_all_once
+
+  local remote_url
+  remote_url=$(git config remote.origin.url 2>/dev/null || echo "")
+  [[ -n "$remote_url" ]] && show_repo_url "$remote_url"
+  success "released v$version 🎉  (the only $level tag is now $prefix$version, on $base history)"
+}
+
+function prep_pause() {
+  # 'setver prep pause' — step off the prep branch, remembering the way back
+  local opt="${1:-}"
+  local stash=0
+  case "$opt" in
+  --stash) stash=1 ;;
+  "") : ;;
+  *) die "unknown option for 'prep pause' [$opt] — use --stash" ;;
+  esac
+
+  if ! prep_is_active; then
+    alert "not on a prep branch — nothing to pause"
+    return 0
+  fi
+
+  local target base branch tip base_commit stash_ref="" return_to commits
+  target=$(prep_read SETVER_PREP_TARGET)
+  base=$(prep_read SETVER_PREP_BASE)
+  base_commit=$(prep_read SETVER_PREP_BASE_COMMIT)
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  tip=$(git rev-parse --short HEAD)
+
+  if [[ -n "$(git status -s)" ]]; then
+    if ((stash)); then
+      git stash push -u -m "setver prep pause" >/dev/null 2>&1 || die "'git stash' failed"
+      stash_ref="stash@{0}"
+    else
+      die "commit or use --stash before pausing"
+    fi
+  fi
+
+  return_to="$base"
+  if ! git show-ref --verify --quiet "refs/heads/$return_to"; then
+    return_to=$(git rev-parse --abbrev-ref '@{-1}' 2>/dev/null || echo "$base")
+  fi
+
+  commits=$(git rev-list --count "$base_commit..HEAD" 2>/dev/null || echo "?")
+
+  git checkout "$return_to" >/dev/null 2>&1 || die "could not checkout [$return_to]"
+
+  {
+    echo "SETVER_SESSION_BRANCH=$branch"
+    echo "SETVER_SESSION_PAUSED_AT=$tip"
+    [[ -n "$stash_ref" ]] && echo "SETVER_SESSION_STASH=$stash_ref"
+    echo "SETVER_SESSION_RETURNED_TO=$return_to"
+  } >"$(prep_session_path)"
+
+  success "$char_wait  paused prep of $target ($commits commits in) — now on $return_to. Resume with '$script_prefix prep resume'."
+}
+
+function prep_resume() {
+  # 'setver prep resume' — return to the paused prep branch
+  local session branch="" stash_ref=""
+  session="$(prep_session_path)"
+
+  if [[ -f "$session" ]]; then
+    branch=$(grep -E '^SETVER_SESSION_BRANCH=' "$session" | cut -d= -f2-)
+    stash_ref=$(grep -E '^SETVER_SESSION_STASH=' "$session" | cut -d= -f2- || true)
+  else
+    local candidates count
+    candidates=$(prep_find_branches)
+    count=$(printf '%s\n' "$candidates" | grep -c . || true)
+    if [[ "$count" -eq 0 ]]; then
+      die "no paused prep session, and no prep branch found to resume"
+    elif [[ "$count" -eq 1 ]] || flag_set "$force"; then
+      branch=$(printf '%s\n' "$candidates" | head -1)
+      alert "no session file — resuming detected prep branch [$branch]"
+    else
+      die "multiple prep branches found; checkout the one you want, or use -f:\n$candidates"
+    fi
+  fi
+
+  [[ -z "$branch" ]] && die "could not determine which prep branch to resume"
+  git checkout "$branch" >/dev/null 2>&1 || die "could not checkout prep branch [$branch]"
+
+  if [[ -n "$stash_ref" ]]; then
+    if git stash pop >/dev/null 2>&1; then
+      success "restored stashed changes"
+    else
+      alert "could not auto-apply stashed changes ($stash_ref) — resolve manually with 'git stash pop'"
+    fi
+  fi
+
+  rm -f "$session"
+  prep_status
+}
+
+function prep_status() {
+  # 'setver prep status' — read-only summary, safe to run anytime
+  local session
+  session="$(prep_session_path)"
+
+  if prep_is_active; then
+    local target level base base_commit branch commits_since base_ahead
+    target=$(prep_read SETVER_PREP_TARGET)
+    level=$(prep_read SETVER_PREP_LEVEL)
+    base=$(prep_read SETVER_PREP_BASE)
+    base_commit=$(prep_read SETVER_PREP_BASE_COMMIT)
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    commits_since=$(git rev-list --count "$base_commit..HEAD" 2>/dev/null || echo "?")
+    base_ahead=$(git rev-list --count "$base_commit..$base" 2>/dev/null || echo "?")
+    success "prep in progress → preparing v$target ($level)"
+    out "  branch  : $branch"
+    out "  base    : $base @ $base_commit"
+    out "  tags    : suppressed (finish with '$script_prefix prep finish')"
+    out "  commits : $commits_since since prep started"
+    out "  on $base : $base_ahead new commit(s) since prep started$([[ "$base_ahead" != "0" ]] && echo " — merge them into the prep branch before finishing")"
+  else
+    out "no prep in progress"
+  fi
+
+  if [[ -f "$session" ]]; then
+    local here paused_branch
+    here=$(git rev-parse --abbrev-ref HEAD)
+    paused_branch=$(grep -E '^SETVER_SESSION_BRANCH=' "$session" | cut -d= -f2-)
+    out "$char_wait  paused, currently on $here; resume with '$script_prefix prep resume' (prep branch: $paused_branch)"
+  fi
+}
+
+function prep_abort() {
+  # 'setver prep abort' — cancel a prep and delete its branch
+  local branch="" base="" target=""
+  if prep_is_active; then
+    target=$(prep_read SETVER_PREP_TARGET)
+    base=$(prep_read SETVER_PREP_BASE)
+    branch=$(prep_branch_name "$target" "$(prep_read SETVER_PREP_LEVEL)")
+  elif [[ -f "$(prep_session_path)" ]]; then
+    branch=$(grep -E '^SETVER_SESSION_BRANCH=' "$(prep_session_path)" | cut -d= -f2-)
+    base=$(grep -E '^SETVER_SESSION_RETURNED_TO=' "$(prep_session_path)" | cut -d= -f2-)
+  else
+    die "no prep in progress"
+  fi
+
+  confirm "Abort prep of ${target:-$branch} and delete branch [$branch]?" || {
+    out "abort cancelled"
+    return 0
+  }
+
+  local current
+  current=$(git rev-parse --abbrev-ref HEAD)
+  if [[ -n "$base" ]] && git show-ref --verify --quiet "refs/heads/$base"; then
+    git checkout "$base" >/dev/null 2>&1 || die "could not checkout base branch [$base]"
+    current="$base"
+  fi
+
+  if git show-ref --verify --quiet "refs/heads/$branch"; then
+    if [[ "$branch" != "$current" ]] && git merge-base --is-ancestor "$branch" HEAD 2>/dev/null; then
+      alert "prep branch [$branch] appears already merged into [$current] — '$script_prefix prep finish' is the right tool there, not abort"
+    fi
+    if git branch -D "$branch" >/dev/null 2>&1; then
+      success "deleted local branch [$branch]"
+    else
+      alert "could not delete local branch [$branch]"
+    fi
+  fi
+
+  if git remote get-url origin >/dev/null 2>&1; then
+    if confirm "Also delete the remote branch [origin/$branch]?"; then
+      if git push origin --delete "$branch" >/dev/null 2>&1; then
+        success "deleted remote branch [$branch]"
+      else
+        alert "could not delete remote branch [$branch] (maybe it was never pushed)"
+      fi
+    fi
+  fi
+
+  rm -f "$(prep_session_path)"
+  success "prep aborted"
+}
+
 #####################################################################
 ################### DO NOT MODIFY BELOW THIS LINE ###################
 #####################################################################

@@ -49,8 +49,8 @@ Flags, options and parameters:
     -l|--log_dir <?> : [option] folder for log files   [default: /Users/pforret/log/setver]
     -t|--tmp_dir <?> : [option] folder for temp files  [default: /tmp/setver]
     -p|--prefix <?>  : [option] prefix to use for git tags  [default: v]
-    <action>         : [parameter] action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/skip/changelog/history
-    <input>          : [parameter] input text (optional)
+    <action>         : [parameter] action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/autominor/automajor/prep/skip/changelog/history
+    <input>          : [parameter] input text, or prep sub-action (optional)
                                                                                                              
                                   
 ### TIPS & EXAMPLES
@@ -61,6 +61,9 @@ Flags, options and parameters:
 * use 'setver autopatch' or 'setver ap' to do commit/push with auto-generated commit message & bump patch version
 * use 'setver autominor' to do commit/push with auto-generated commit message & bump minor version
 * use 'setver automajor' to do commit/push with auto-generated commit message & bump major version
+* use 'setver prep major' or 'setver prep minor' to start a prepared release (git tags stay suppressed until you finish)
+* use 'setver prep finish' to create the single release tag once the prepared work is merged onto the base branch
+* use 'setver prep status/pause/resume/abort' to inspect or manage a prepared release
 * use 'setver skip' to do commit/push with auto-generated commit message and skip GH actions
 * use 'setver md' to generate a correct VERSION.md file, if it does not yet exist
 * use 'setver set x.y.z' to set new version number
@@ -85,6 +88,37 @@ Flags, options and parameters:
 Use `-f|--force` to skip the confirmation prompts.
 
 The combined commands `setver ap`/`autopatch`, `setver autominor` and `setver automajor` commit the code changes, bump the version and create the git tag, then do a **single** `git push` of commits and tags together at the very end — so they trigger only 1 CI/CD run instead of one per intermediate push.
+
+## Prepared releases (`setver prep`)
+
+Composer/Packagist (and most other consumers) resolve installable versions from **git tags**. When you prepare a big `v2.0.0`, bumping versions while you work would push intermediate tags (`v2.0.1`, `v2.0.2`, …) that become installable immediately — because tags are repository-global, not branch-scoped. A major release should instead be **one publish event**, on the base branch, after the work is merged.
+
+`setver prep` enforces that: while a prep is active, **all git tags are hard-suppressed**. The single real tag is created only at `prep finish`.
+
+```sh
+# on main, start preparing the next major (2.0.0) on a dedicated branch
+setver prep major            # -> creates branch 'prep-v2', writes .setver-prep, sets files to 2.0.0
+
+# develop as usual; dev version numbers may climb, but NO tag is ever pushed
+setver ap                    # 2.0.0 -> 2.0.1 (files + commit), tag suppressed
+setver ap                    # 2.0.1 -> 2.0.2, tag suppressed
+
+# step away and come back at any time
+setver prep pause --stash    # remember the branch, stash WIP, return to base
+setver prep resume           # jump back onto the prep branch, restore the WIP
+setver prep status           # target, suppression, and how far base has moved
+
+# after the prep branch is merged into the base branch (e.g. the PR is merged):
+setver prep finish           # releases the clean target v2.0.0 as the ONE tag, in a single push
+```
+
+* The marker file **`.setver-prep`** is committed to the prep branch, so it travels with the PR and into the base branch on merge. Its presence is the tag-suppression switch — the base branch therefore stays suppressed in the window between merge and `finish`, preventing an accidental tag.
+* `prep finish` releases the **clean target** (`2.0.0`) by default, not the drifted dev number; pass `--keep-version` to tag whatever the files currently say. Use `--no-ff` to have `finish` merge the prep branch locally first (for a non-PR workflow).
+* `prep finish` refuses unless the prep branch is actually merged into the base branch (override with `-f`).
+* **Hotfixes are unaffected.** A `v1.x` hotfix branched off the release tag (`git checkout -b hotfix-1.4.4 v1.4.3`) carries no `.setver-prep`, so `setver ap` there tags `v1.4.4` normally while the prep stays suppressed elsewhere. `prep status` shows how many commits landed on the base branch since the prep started — your cue to merge the fix into the prep branch so it isn't lost at `2.0.0`.
+* `prep abort` cancels a prep: it returns to the base branch and deletes the prep branch (locally, and optionally on the remote).
+
+`prep patch` is intentionally not supported — a patch doesn't warrant a prepared branch; use `setver ap`.
 
 ## Conventional Commits messages
 

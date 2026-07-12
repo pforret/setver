@@ -61,13 +61,13 @@ jobs:
     - name: Run BATS test suite
       run: |
         echo "🧪 Running setver test suite on ${{ matrix.os }}..."
-        bats tests/setver.bats --tap
+        bats tests/setver.bats tests/prep.bats --tap
 
     - name: Generate test report
       if: always()
       run: |
         echo "## Test Results for ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
-        if bats tests/setver.bats 2>&1 | tee test-output.txt; then
+        if bats tests/setver.bats tests/prep.bats 2>&1 | tee test-output.txt; then
           TOTAL=$(grep -c '^ok' test-output.txt || echo 0)
           echo "✅ **All $TOTAL tests passed!**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -126,7 +126,7 @@ jobs:
         echo "" >> coverage.md
 
         # Run tests and capture output
-        if bats tests/setver.bats 2>&1 | tee full-test-output.txt; then
+        if bats tests/setver.bats tests/prep.bats 2>&1 | tee full-test-output.txt; then
           TOTAL=$(grep -c '^ok' full-test-output.txt)
           echo "✅ **$TOTAL / $TOTAL tests passing (100%)**" >> coverage.md
           echo "" >> coverage.md
