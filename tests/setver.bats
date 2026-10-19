@@ -530,3 +530,18 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ ! "$output" =~ "Next step" ]]
 }
+
+##############################################################################
+# Untracked file handling
+##############################################################################
+
+@test "setver -f push - adds untracked files with non-ASCII chars, spaces and quotes" {
+  mkdir -p views
+  touch "views/⚡show.blade.php" "with space.txt" "it's.txt"
+  run "$SETVER_SCRIPT" -r -f push
+  [ "$status" -eq 0 ]
+  run git -c core.quotePath=false ls-files
+  [[ "$output" =~ "views/⚡show.blade.php" ]]
+  [[ "$output" =~ "with space.txt" ]]
+  [[ "$output" =~ "it's.txt" ]]
+}

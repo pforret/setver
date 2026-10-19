@@ -811,13 +811,13 @@ function commit_and_push() {
 
   # Detect untracked files that haven't been staged yet
   local untracked_files=""
-  untracked_files=$(git ls-files --others --exclude-standard)
+  untracked_files=$(git -c core.quotePath=false ls-files --others --exclude-standard)
   if [[ -n "$untracked_files" ]]; then
     alert "Untracked files detected:"
     echo "$untracked_files" | sed 's/^/  /'
     if confirm "Shall I 'git add' these files before committing?"; then
-      # shellcheck disable=SC2086
-      echo "$untracked_files" | xargs -r git add || die "'git add' failed"
+      # NUL-separated so filenames with non-ASCII chars, spaces or quotes are passed verbatim
+      git ls-files -z --others --exclude-standard | xargs -0 git add -- || die "'git add' failed"
       success "Added untracked files"
     fi
   fi
