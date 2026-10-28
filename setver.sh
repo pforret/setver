@@ -822,7 +822,7 @@ function commit_and_push() {
   untracked_files=$(git -c core.quotePath=false ls-files --others --exclude-standard)
   if [[ -n "$untracked_files" ]]; then
     alert "Untracked files detected:"
-    echo "$untracked_files" | sed 's/^/  /'
+    echo "  ${untracked_files//$'\n'/$'\n'  }"
     if confirm "Shall I 'git add' these files before committing?"; then
       # NUL-separated so filenames with non-ASCII chars, spaces or quotes are passed verbatim
       git ls-files -z --others --exclude-standard | xargs -0 git add -- || die "'git add' failed"
