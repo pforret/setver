@@ -545,3 +545,19 @@ teardown() {
   [[ "$output" =~ "with space.txt" ]]
   [[ "$output" =~ "it's.txt" ]]
 }
+
+@test "setver commit - commits with auto message and does not push" {
+  git init --bare -q "$TEST_REPO_DIR/remote.git"
+  git remote add origin "$TEST_REPO_DIR/remote.git"
+  echo "remote.git/" > .gitignore
+  git add .gitignore && git commit -q -m "ignore remote"
+  echo "change" >> README.md
+  run "$SETVER_SCRIPT" -r -f commit
+  [ "$status" -eq 0 ]
+  [ -z "$(git status --porcelain)" ]
+  run git log -1 --pretty=%s
+  [ "$output" != "ignore remote" ]
+  # nothing reached the remote
+  run git --git-dir="$TEST_REPO_DIR/remote.git" rev-parse --verify -q HEAD
+  [ "$status" -ne 0 ]
+}
