@@ -19,7 +19,7 @@ flag|O|CONVENTIONAL|build a Conventional Commits message interactively
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
 option|p|prefix|prefix to use for git tags|v
-param|1|action|action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/autominor/automajor/skip/changelog/history
+param|1|action|action to perform: get/check/push/commit/c/set/new/md/message/auto/autopatch/ap/autominor/automajor/skip/changelog/history
 param|?|input|input text
 " | grep -v '^#' | grep -v '^\s*$'
 }
@@ -101,6 +101,14 @@ function main() {
     push_all_once
     ;;
 
+  #TIP: use «$script_prefix commit» or «$script_prefix c» to commit with auto-generated commit message, without pushing
+  commit | c)
+    # reuse the deferred-push mechanism, but never push afterwards
+    SETVER_DEFER_PUSH=1
+    commit_and_push auto
+    SETVER_DEFER_PUSH=0
+    ;;
+
   #TIP: use «$script_prefix skip» to do commit/push with auto-generated commit message and skip GH actions
   skip | skip-ci | skipci)
     commit_and_push skipci
@@ -125,7 +133,7 @@ function main() {
 
     #TIP: use «$script_prefix push» to do commit/push with auto-generated commit message
     #TIP: use «$script_prefix -O push» to commit/push with an interactive Conventional Commits message
-  push | commit | github)
+  push | github)
     commit_and_push
     ;;
 

@@ -49,7 +49,7 @@ Flags, options and parameters:
     -l|--log_dir <?> : [option] folder for log files   [default: /Users/pforret/log/setver]
     -t|--tmp_dir <?> : [option] folder for temp files  [default: /tmp/setver]
     -p|--prefix <?>  : [option] prefix to use for git tags  [default: v]
-    <action>         : [parameter] action to perform: get/check/push/set/new/md/message/auto/autopatch/ap/skip/changelog/history
+    <action>         : [parameter] action to perform: get/check/push/commit/c/set/new/md/message/auto/autopatch/ap/skip/changelog/history
     <input>          : [parameter] input text (optional)
                                                                                                              
                                   
@@ -61,6 +61,7 @@ Flags, options and parameters:
 * use 'setver autopatch' or 'setver ap' to do commit/push with auto-generated commit message & bump patch version
 * use 'setver autominor' to do commit/push with auto-generated commit message & bump minor version
 * use 'setver automajor' to do commit/push with auto-generated commit message & bump major version
+* use 'setver commit' or 'setver c' to commit with auto-generated commit message, without pushing
 * use 'setver skip' to do commit/push with auto-generated commit message and skip GH actions
 * use 'setver md' to generate a correct VERSION.md file, if it does not yet exist
 * use 'setver set x.y.z' to set new version number
@@ -76,7 +77,7 @@ Flags, options and parameters:
 
 ## Smart commit & push helpers
 
-`setver auto`, `setver ap` and `setver push` include a few safety checks before committing:
+`setver auto`, `setver ap`, `setver commit` and `setver push` include a few safety checks before committing:
 
 * **No git repo yet?** If `.git` doesn't exist, setver offers to run `git init && git add .` for you.
 * **Untracked files?** If new files haven't been `git add`'ed yet, setver lists them and offers to stage them before committing.
@@ -88,7 +89,7 @@ The combined commands `setver ap`/`autopatch`, `setver autominor` and `setver au
 
 ## Conventional Commits messages
 
-Add the `-O|--CONVENTIONAL` flag to any commit action (`push`, `auto`, `skip`) to build a
+Add the `-O|--CONVENTIONAL` flag to any commit action (`push`, `auto`, `commit`, `skip`) to build a
 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) compliant
 message interactively instead of using the auto-generated message:
 
