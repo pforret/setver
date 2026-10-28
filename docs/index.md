@@ -49,7 +49,7 @@ Flags, options and parameters:
     -l|--log_dir <?> : [option] folder for log files   [default: /Users/pforret/log/setver]
     -t|--tmp_dir <?> : [option] folder for temp files  [default: /tmp/setver]
     -p|--prefix <?>  : [option] prefix to use for git tags  [default: v]
-    <action>         : [parameter] action to perform: get/check/push/commit/set/new/md/message/auto/autopatch/ap/skip/changelog/history
+    <action>         : [parameter] action to perform: get/check/push/commit/c/set/new/md/message/auto/autopatch/ap/skip/changelog/history
     <input>          : [parameter] input text (optional)
                                                                                                              
                                   
@@ -61,7 +61,7 @@ Flags, options and parameters:
 * use 'setver autopatch' or 'setver ap' to do commit/push with auto-generated commit message & bump patch version
 * use 'setver autominor' to do commit/push with auto-generated commit message & bump minor version
 * use 'setver automajor' to do commit/push with auto-generated commit message & bump major version
-* use 'setver commit' to commit with auto-generated commit message, without pushing
+* use 'setver commit' or 'setver c' to commit with auto-generated commit message, without pushing
 * use 'setver skip' to do commit/push with auto-generated commit message and skip GH actions
 * use 'setver md' to generate a correct VERSION.md file, if it does not yet exist
 * use 'setver set x.y.z' to set new version number

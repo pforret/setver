@@ -561,3 +561,12 @@ teardown() {
   run git --git-dir="$TEST_REPO_DIR/remote.git" rev-parse --verify -q HEAD
   [ "$status" -ne 0 ]
 }
+
+@test "setver c - alias for commit" {
+  echo "change" >> README.md
+  run "$SETVER_SCRIPT" -r -f c
+  [ "$status" -eq 0 ]
+  [ -z "$(git status --porcelain)" ]
+  run git log -1 --pretty=%s
+  [ "$output" != "Initial commit" ]
+}
